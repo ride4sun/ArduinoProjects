@@ -1,3 +1,4 @@
+```
 "# ArduinoProjects" 
 GetHub 
 ride4sun/ArduidoProjects
@@ -10,7 +11,7 @@ git config --global user.email "groove@burningman.org"
 
 from GSCODE
 'Arduino - change board type (select your board)
-arduino - select baud rate
+-arduino - select baud rate
 
 
 =============================================
@@ -21,3 +22,4 @@ arduino - select baud rate
 =============================================
 
 [Cntrl] [shft] [p] = command line
+```
