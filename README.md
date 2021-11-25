@@ -13,11 +13,11 @@ ride4sun/ArduidoProjects
 git config --global user.name "Groove M"
 git config --global user.email "groove@burningman.org"
 
-from GSCODE
-'Arduino - change board type (select your board)
--arduino - select baud rate
-arduino - select comm port
-upload to test the settings..
+from VSCODE
+Arduino - change board type (select your board)
+arduino - select baud rate
+arduino - select serial port
+arduino upload to test the settings..
 
 : setup the intellesense in VSCODE
 https://cuneyt.aliustaoglu.biz/en/enabling-arduino-intellisense-with-visual-studio-code/
