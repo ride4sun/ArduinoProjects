@@ -23,7 +23,7 @@ upload to test the settings..
 https://cuneyt.aliustaoglu.biz/en/enabling-arduino-intellisense-with-visual-studio-code/
 
 |File| ->Preferences -> Settings 
-[Extensions] / [Ardunio Setting] [settings.json]
+[Extensions] / [Ardunio Setting] [edit in settings.json]
 "arduino.path": "C:\\Program Files (x86)\\Arduino",
 "arduino.additionalUrls": "", 
 "arduino.logLevel": "info", 
