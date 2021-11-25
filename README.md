@@ -1,5 +1,9 @@
 ```
+
+:Note:  the use ``` at top & bottom of text files make it 'MARKDOWN LAUGUAGE'
 "# ArduinoProjects" 
+
+
 GetHub 
 ride4sun/ArduidoProjects
 
@@ -12,6 +16,18 @@ git config --global user.email "groove@burningman.org"
 from GSCODE
 'Arduino - change board type (select your board)
 -arduino - select baud rate
+arduino - select comm port
+upload to test the settings..
+
+: setup the intellesense in VSCODE
+|File| ->Preferences -> Settings 
+[Extensions] / [Ardunio Setting] [settings.json]
+"arduino.path": "C:\\Program Files (x86)\\Arduino",
+"arduino.additionalUrls": "", 
+"arduino.logLevel": "info", 
+"arduino.enableUSBDetection": true, "C_Cpp.intelliSenseEngine": "Tag Parser"
+
+
 
 
 =============================================
