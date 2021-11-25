@@ -20,6 +20,8 @@ arduino - select comm port
 upload to test the settings..
 
 : setup the intellesense in VSCODE
+https://cuneyt.aliustaoglu.biz/en/enabling-arduino-intellisense-with-visual-studio-code/
+
 |File| ->Preferences -> Settings 
 [Extensions] / [Ardunio Setting] [settings.json]
 "arduino.path": "C:\\Program Files (x86)\\Arduino",
