@@ -10,6 +10,8 @@ ride4sun/ArduidoProjects  (GitHub Projects with Jay)
 
 -install git (git-scm.com) (github code version manager)(SCM = source code manager)
 -install github desktop
+-install C/C++ (if not already automatically installed).
+
 
 git config --global user.name "Groove M"
 git config --global user.email "groove@burningman.org"
