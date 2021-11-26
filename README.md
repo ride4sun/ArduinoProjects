@@ -4,8 +4,9 @@
 "# ArduinoProjects" 
 
 
-GetHub 
-ride4sun/ArduidoProjects
+GetHub NOTES: 
+===============================================================
+ride4sun/ArduidoProjects  (GitHub Projects with Jay)
 
 -install git (git-scm.com) (github code version manager)(SCM = source code manager)
 -install github desktop
