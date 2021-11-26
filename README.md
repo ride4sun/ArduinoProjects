@@ -3,6 +3,10 @@
 :Note:  the use ``` at top & bottom of text files make it 'MARKDOWN LAUGUAGE'
 "# ArduinoProjects" 
 
+
+GetHub NOTES: 
+===============================================================
+
 GetHub project location: ride4sun/ArduidoProjects
 ================================================
 from VSCODE interface: 
@@ -11,6 +15,8 @@ from VSCODE interface:
 
 -install git (git-scm.com) (github code version manager)(SCM = source code manager)
 -install github desktop
+-install C/C++ (if not already automatically installed).
+
 
 git config --global user.name "Groove M"
 git config --global user.email "groove@burningman.org"
