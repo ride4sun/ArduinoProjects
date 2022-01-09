@@ -22,6 +22,8 @@ git config --global user.name "Groove M"
 git config --global user.email "groove@burningman.org"
 
 Arduino - change board type (select your board)
+Arduino - board configuration - select Processor (Nano - ATmega328P (Old Bootloader))
+
 arduino - select baud rate
 arduino - select serial port
 arduino - upload 
