@@ -8,6 +8,8 @@
 
 NewPing sonar(TRIGGER_PIN, ECHO_PIN, MAX_DISTANCE);
 
+//this is nothing
+
 void setup() {
   Serial.begin(9600);
   delay(50);
