@@ -10,7 +10,7 @@
 CRGB leds[NUM_LEDS];
 #define BRIGHTNESS 100
 
-// Note: Left-Grnd / Cntr-Power/ Right-Signal
+//Hall Sensor Note: Left-Grnd / Cntr-Power/ Right-Signal
 
 uint16_t holdTime =100;   // Milliseconds to hold position before advancing.
 uint16_t spacing = 4;      // Sets pixel spacing. [Use 2 or greater] ( spacing = <3 WORKS good)
