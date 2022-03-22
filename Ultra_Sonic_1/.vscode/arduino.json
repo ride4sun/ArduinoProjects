@@ -1,0 +1,6 @@
+{
+    "configuration": "cpu=atmega328old",
+    "board": "arduino:avr:nano",
+    "port": "COM6",
+    "sketch": "Ultra_Sonic_1.ino"
+}

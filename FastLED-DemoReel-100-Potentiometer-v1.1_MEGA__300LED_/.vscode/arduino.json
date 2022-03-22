@@ -1,0 +1,6 @@
+{
+    "configuration": "cpu=atmega328old",
+    "board": "arduino:avr:nano",
+    "port": "COM6",
+    "sketch": "FastLED-DemoReel-100-Potentiometer-v1.1_MEGA__300LED_.ino"
+}
