@@ -1,0 +1,6 @@
+{
+    "port": "COM3",
+    "configuration": "cpu=atmega328old",
+    "board": "arduino:avr:nano",
+    "sketch": "FastLED-Marquee-Hall_Sensor_1_150LED_WORKS.ino"
+}
