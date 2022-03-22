@@ -15,7 +15,7 @@ GetHub project location: ride4sun/ArduidoProjects
 ================================================
 ERROR HELP:
 compile error:  avrdud: stk500v1_getsync(): timeout commuication with programmer
-- It the wrong board. It should be: 
+- It's the wrong board. It should be: 
 Select Board: Ardunio Nano (Ardunio AVR Board)
 Processor: ATmega328P (Old BootLoader)
 
