@@ -36,12 +36,14 @@ bool lock = false;
 //---------------------------------------------------------------
 void setup()
 {
+  Serial.print("setup start --------------------");
   pinMode(hallPin, INPUT);
 
   FastLED.clear(); // clear all pixel data
 
   Serial.begin(9600); // Allows serial monitor output (check baud rate)
   delay(1600);        // Startup delay
+  
 
   FastLED.addLeds<LED_TYPE, DATA_PIN>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
@@ -52,10 +54,12 @@ void setup()
   Serial.print("NUM_LEDS/spacing: ");
   Serial.println(NUM_LEDS / spacing);
   Serial.println("Setup done. ");
+  Serial.print("setup end --------------------");
 }
 
 void interruptHall()
 {
+  Serial.print("interrupt --------------------");
   eventList.push_front(true);
 }
 
