@@ -16,16 +16,17 @@ CRGB leds[NUM_LEDS];
 
 uint16_t holdTime = 30;  // Milliseconds to hold position before advancing.
 uint16_t spacing = 3;    // Sets pixel spacing. [Use 2 or greater] ( spacing = <3 WORKS good)
-uint16_t delta = 5;      // Sets forward or backwards direction amount. (Can be negative.) (delta = 1 WORKS)
+uint16_t delta = 1;      // Sets forward or backwards direction amount. (Can be negative.) (delta = 1 WORKS)
 uint16_t width = 1;      // Can increase the number of pixels (width) of the chase. [1 or greater] (width = 1 WORKS)
-uint8_t hue = 180;       // Starting color.
+uint8_t hue = 0;         // Starting color.
 uint8_t hue2_shift = 20; // Hue shift for secondary color.  Use 0 for no shift. [0-255]
 
-int16_t pos;                  // Pixel position.
-int16_t prev_pos;             // previous Pixel position.
+uint16_t pos;                 // Pixel position.
+uint16_t prev_pos;            // previous Pixel position.
 int16_t advance = -1 * width; // Stores the advance amount.
 uint8_t color;                // Stores a hue color.
 bool toggle = false;
+bool reverse = true;
 
 long cycleCount = 0; // used for printing how many times thru the complete loop cycle
 
@@ -39,19 +40,20 @@ int potVal = analogRead(A0);
 
 void interruptHall()
 {
-  Serial.println("hall sensor event --------------------");
+  Serial.println("------------------------------>");
   Serial.println(eventList.length());
+  Serial.print("lock:");
   Serial.println(lock ? "true" : "false");
 
   // make sure there is only one event per magnet
   if (toggle == false)
   {
     toggle = true;
+    eventList.push_back(true);
   }
   else
   {
     toggle = false;
-    eventList.push_back(true);
   }
 }
 
@@ -82,23 +84,6 @@ void setup()
   Serial.println("Setup done. ");
 }
 
-// void loop()
-// {
-
-//   hallState = digitalRead(hallPin);
-//   if (hallState != prev_hallState)
-//   {
-
-//     EVERY_N_MILLISECONDS(holdTime) // Advance pixels to next position.
-//     {
-//       ledCodeOnHalEvent();
-//       prev_hallState = hallState; // Hall Sensor
-//     }                             // Hall Sensor
-
-//   } // end_every_n
-
-// } // end_main_loop
-
 void RainbowOnEvent()
 {
   for (int i = 0; i < NUM_LEDS; ++i)
@@ -116,7 +101,7 @@ void simpleBlueAndWhiteRunningWithSpacingAndWidth()
 {
   for (int i = 0; i < NUM_LEDS; i = +(spacing + width))
   {
-    if ((i + pos) % 2)
+    if ((i + pos) % 2) 
     {
       leds[i] = CRGB::Black;
     }
@@ -165,13 +150,54 @@ void simpleGradientBlink()
     fill_gradient_RGB(leds, NUM_LEDS, CRGB::Red, CRGB::Blue);
 }
 
-#define SNAKE_LENGTH 10
-#define SNAKE_COLOR CRGB::Red
-#define SNAKE_BACKGROUND_COLOR CRGB::Black
 
+int shiftBy = 1;                  // shiftBy can be positive or negative (to change direction)
+static uint16_t numColors = 2;    // Can be either 2 or 3
+static uint16_t stripeLength = 4; // number of pixels per color
+static int offset;
+
+CRGB color1 = CRGB::Blue; // color used between color 2 (and 3 if used)
+CRGB color2 = CRGB::Black;
+
+// set delta to any number
+void candyCane()
+{
+
+  // Below is the jonniji modification to the loop.
+  for (uint16_t i = 0; i < NUM_LEDS; i++)
+  {
+    if ((i + offset) % ((numColors)*stripeLength) < stripeLength)
+    {
+      leds[i] = color2;
+    }
+    else
+    {
+      leds[i] = color1;
+    }
+  }
+  // This is the section of code that makes the lights move
+
+  offset = offset + shiftBy;
+  if (shiftBy > 0)
+  { // for positive shiftBy
+    if (offset >= NUM_LEDS)
+      offset = 0;
+  }
+  else
+  { // for negitive shiftBy
+    if (offset < 0)
+      offset = NUM_LEDS;
+  }
+}
+
+#define SNAKE_LENGTH 100
+#define SNAKE_BACKGROUND_COLOR CRGB::Black
 // set delta to any number
 void simpleSnakeRunning()
 {
+
+  uint8_t oldHue = hue;
+
   // paint background
   for (int i = 0; i < NUM_LEDS; i++)
   {
@@ -184,22 +210,23 @@ void simpleSnakeRunning()
     // snake until the end
     for (int i = 0; i < SNAKE_LENGTH; i++)
     {
-      leds[pos - i] = SNAKE_COLOR;
+      leds[pos - i] = CHSV(hue++, 255, 255);
     }
   }
   else
   {
-    //loop for the few LEds on the beginning
+    // loop for the few LEds on the beginning
     for (int i = pos; i >= 0; i--)
     {
-      leds[i] = SNAKE_COLOR;
+      leds[i] = CHSV(hue++, 255, 255);
     }
     // loop for the few LEds on the beginning
     for (int i = pos + NUM_LEDS - SNAKE_LENGTH; i < NUM_LEDS; i++)
     {
-      leds[i] = SNAKE_COLOR;
+      leds[i] = CHSV(hue++, 255, 255);
     }
   }
+  hue = oldHue + 10;
 }
 
 void simpleWhiteDotRunning()
@@ -211,15 +238,60 @@ void simpleWhiteDotRunning()
 
 void ledCodeOnHalEvent()
 {
-  simpleSnakeRunning();
+  candyCane();
 }
 void ledCodeOnLoop()
 {
 }
 
+void UpdatePosition()
+{
+
+  Serial.print("pos before:");
+  Serial.println(pos);
+
+  prev_pos = pos;
+  if (reverse)
+  {
+    // backwards
+    if (delta > pos)
+    {
+      pos = NUM_LEDS - (delta - pos);
+    }
+    else
+    {
+      pos = pos - delta;
+    }
+  }
+  else
+  {
+    // forwards
+    if ((pos + delta) < NUM_LEDS)
+    {
+      pos = pos + delta;
+      // Serial.print("pos + delta:");
+      // Serial.println(pos);
+    }
+    else
+    {
+      pos = pos + delta - NUM_LEDS;
+      // Serial.print("pos + delta - NUM_LEDS:");
+      // Serial.println(pos);
+    }
+  }
+}
+
 void loop()
 {
   // update position
+
+  // slow updates here ...
+  EVERY_N_MILLISECONDS(5000) // Advance pixels to next position.
+  {
+    // potVal = analogRead(potPin);
+    // Serial.print("potVal:");
+    // Serial.println(potVal);
+  }
 
   if (lock == false)
   {
@@ -230,19 +302,9 @@ void loop()
 
     ledCodeOnLoop();
 
-    // potVal = analogRead(potPin);
-    // Serial.println("potVal5:");
-    // Serial.println(potVal);
-
     if (eventList.length() != 0)
     {
-      // Advance pixels to next position.
-      prev_pos = pos;
-      if (pos < NUM_LEDS)
-        pos = pos + delta;
-      else
-        pos = 0;
-
+      UpdatePosition();
       ledCodeOnHalEvent();
       FastLED.show();
 
@@ -258,4 +320,3 @@ void loop()
     lock = false;
   }
 }
-
