@@ -1,45 +1,42 @@
 #include <Arduino.h>
+#include <candyCane.h>
+#include <rainbow.h>
+#include <snake.h>
+#include <whiteDotRunning.h>
+#include <blueAndWhite.h>
 #include "QList.h"
+#include "defines.h"
 #define FASTLED_INTERRUPT_RETRY_COUNT 2
 // #define FASTLED_ALLOW_INTERRUPTS 0 // Needed to fix jitter/fluttering!
 #include "FastLED.h"
 
-#define LED_TYPE WS2812B
-#define NUM_LEDS 150 //
-#define COLOR_ORDER GRB
-#define DATA_PIN 2 // LED Signal - Pin2 on the board.
+typedef struct ledFunction
+{
+  void (*LedFunctionSetup)();
+  void (*LedFunctionFastLoop)();
+  void (*LedFunctionHallEvent)(CRGB *, uint16_t, uint16_t);
+  uint16_t delta;
+} ledMethods;
 
-CRGB leds[NUM_LEDS];
-#define BRIGHTNESS 100
+CRGB leds[NUM_LEDS];          // the led array representing the leds addressable by FASTLED
+ledFunction ledFunctions[12]; // the number of different led animations for the potentiometer to select
 
-// Hall Sensor Note: Left-Grnd / Cntr-Power/ Right-Signal
+uint16_t delta = 5; // Sets forward or backwards direction amount. (Can be negative.) (delta = 1 WORKS)
+uint16_t pos;       // Pixel position.
+uint16_t prev_pos;  // previous Pixel position.
 
-uint16_t holdTime = 30;  // Milliseconds to hold position before advancing.
-uint16_t spacing = 3;    // Sets pixel spacing. [Use 2 or greater] ( spacing = <3 WORKS good)
-uint16_t delta = 1;      // Sets forward or backwards direction amount. (Can be negative.) (delta = 1 WORKS)
-uint16_t width = 1;      // Can increase the number of pixels (width) of the chase. [1 or greater] (width = 1 WORKS)
-uint8_t hue = 0;         // Starting color.
-uint8_t hue2_shift = 20; // Hue shift for secondary color.  Use 0 for no shift. [0-255]
+bool toggle = false; // used to limit the number of hall events per magnet to one
+bool reverse = true; // the direction of the hall event
 
-uint16_t pos;                 // Pixel position.
-uint16_t prev_pos;            // previous Pixel position.
-int16_t advance = -1 * width; // Stores the advance amount.
-uint8_t color;                // Stores a hue color.
-bool toggle = false;
-bool reverse = true;
-
-long cycleCount = 0; // used for printing how many times thru the complete loop cycle
-
-const int hallPin = 3;  // Hall Sensor Pin3 on the Board.
-int hallState = 0;      // Hall Sensor
-int prev_hallState = 0; // Hall Sensor
-QList<bool> eventList;  // has all interrupt events
+const int hallPin = 3; // Hall Sensor Pin3 on the Board.
+QList<bool> eventList; // has all interrupt events
 bool lock = false;
 byte potPin = A0;
 int potVal = analogRead(A0);
 
 void interruptHall()
 {
+
   Serial.println("------------------------------>");
   Serial.println(eventList.length());
   Serial.print("lock:");
@@ -57,8 +54,58 @@ void interruptHall()
   }
 }
 
+int potentiometerPosition = 4;
+
+void setupLedFunctions()
+{
+  ledFunctions[0] = {NULL, NULL, candyCaneHallEvent, 5};
+  ledFunctions[1] = {NULL, NULL, snakeHallEvent, 5};
+  ledFunctions[2] = {NULL, rainbowLoop, rainbowHallEvent, 5};
+  ledFunctions[3] = {NULL, NULL, whiteDotEvent, 2};
+  ledFunctions[NUMBER_OF_ANIMATIONS - 1] = {NULL, NULL, blueAndWhiteEvent, 1};
+}
+void ledCodeOnHalEvent()
+{
+  ledFunction selectedFunction = ledFunctions[potentiometerPosition];
+  if (selectedFunction.LedFunctionHallEvent != NULL)
+    selectedFunction.LedFunctionHallEvent(leds, pos, prev_pos);
+}
+
+void ledCodeOnLoop()
+{
+  ledFunction selectedFunction = ledFunctions[potentiometerPosition];
+  if (selectedFunction.LedFunctionFastLoop != NULL)
+    selectedFunction.LedFunctionFastLoop();
+}
+
+void ledCodeOnSetup()
+{
+  ledFunction selectedFunction = ledFunctions[potentiometerPosition];
+  if (selectedFunction.LedFunctionSetup != NULL)
+    selectedFunction.LedFunctionSetup();
+}
+
+void showStartupAnimation()
+{
+  leds[0] = CRGB::Red;
+  FastLED.show();
+  delay(2500);
+  leds[1] = CRGB::Orange;
+  FastLED.show();
+  delay(2500);
+  leds[2] = CRGB::Yellow;
+  FastLED.show();
+  delay(2500);
+  leds[3] = CRGB::Green;
+  FastLED.show();
+  delay(2500);
+  FastLED.clear();
+}
+
 void setup()
 {
+  setupLedFunctions();
+
   Serial.begin(115200);
   Serial.println("Setup Start");
   FastLED.clear();
@@ -72,176 +119,26 @@ void setup()
 
   FastLED.addLeds<LED_TYPE, DATA_PIN, GRB>(leds, NUM_LEDS);
   FastLED.setBrightness(BRIGHTNESS);
-  leds[0] = CRGB::Red;
-  leds[1] = CRGB::Green;
-  leds[2] = CRGB::Blue;
-  FastLED.show();
-  // wait to connect the serial monitor
-  delay(10000);
 
-  Serial.print("NUM_LEDS/spacing: ");
-  Serial.println(NUM_LEDS / spacing);
+  showStartupAnimation();
+
+  ledFunction selectedFunction = ledFunctions[potentiometerPosition];
+  if (selectedFunction.delta != NULL)
+    delta = selectedFunction.delta;
+
+  ledCodeOnSetup();
+
+  Serial.print("NUM_LEDS: ");
+  Serial.println(NUM_LEDS);
   Serial.println("Setup done. ");
 }
 
-void RainbowOnEvent()
-{
-  for (int i = 0; i < NUM_LEDS; ++i)
-  {
-    leds[i] = CHSV(hue + (i * 10), 255, 255);
-  }
-}
-void RainbowOnLoop()
-{
-  hue++;
-}
-
-// set delta to 1 to work
-void simpleBlueAndWhiteRunningWithSpacingAndWidth()
-{
-  for (int i = 0; i < NUM_LEDS; i = +(spacing + width))
-  {
-    if ((i + pos) % 2) 
-    {
-      leds[i] = CRGB::Black;
-    }
-    else
-    {
-      leds[i] = CRGB::Blue;
-    }
-  }
-}
-// set delta to 1 to work
-void simpleBlueAndWhiteRunningWithSpacing()
-{
-  for (int i = 0; i < NUM_LEDS; i = (i + spacing))
-  {
-    if ((i + pos) % 2)
-    {
-      leds[i] = CRGB::Black;
-    }
-    else
-    {
-      leds[i] = CRGB::Blue;
-    }
-  }
-}
-// set delta to 1 to work
-void simpleBlueAndWhiteRunning()
-{
-  for (int i = 0; i < NUM_LEDS; ++i)
-  {
-    if ((i + pos) % 2)
-    {
-      leds[i] = CRGB::Black;
-    }
-    else
-    {
-      leds[i] = CRGB::Blue;
-    }
-  }
-}
-// set delta to 1 to work
 void simpleGradientBlink()
 {
   if (pos % 2)
     fill_gradient_RGB(leds, NUM_LEDS, CRGB::Magenta, CRGB::Yellow);
   else
     fill_gradient_RGB(leds, NUM_LEDS, CRGB::Red, CRGB::Blue);
-}
-
-
-int shiftBy = 1;                  // shiftBy can be positive or negative (to change direction)
-static uint16_t numColors = 2;    // Can be either 2 or 3
-static uint16_t stripeLength = 4; // number of pixels per color
-static int offset;
-
-CRGB color1 = CRGB::Blue; // color used between color 2 (and 3 if used)
-CRGB color2 = CRGB::Black;
-
-// set delta to any number
-void candyCane()
-{
-
-  // Below is the jonniji modification to the loop.
-  for (uint16_t i = 0; i < NUM_LEDS; i++)
-  {
-    if ((i + offset) % ((numColors)*stripeLength) < stripeLength)
-    {
-      leds[i] = color2;
-    }
-    else
-    {
-      leds[i] = color1;
-    }
-  }
-  // This is the section of code that makes the lights move
-
-  offset = offset + shiftBy;
-  if (shiftBy > 0)
-  { // for positive shiftBy
-    if (offset >= NUM_LEDS)
-      offset = 0;
-  }
-  else
-  { // for negitive shiftBy
-    if (offset < 0)
-      offset = NUM_LEDS;
-  }
-}
-
-#define SNAKE_LENGTH 100
-#define SNAKE_BACKGROUND_COLOR CRGB::Black
-// set delta to any number
-void simpleSnakeRunning()
-{
-
-  uint8_t oldHue = hue;
-
-  // paint background
-  for (int i = 0; i < NUM_LEDS; i++)
-  {
-
-    leds[i] = SNAKE_BACKGROUND_COLOR;
-  }
-
-  if (pos > SNAKE_LENGTH)
-  {
-    // snake until the end
-    for (int i = 0; i < SNAKE_LENGTH; i++)
-    {
-      leds[pos - i] = CHSV(hue++, 255, 255);
-    }
-  }
-  else
-  {
-    // loop for the few LEds on the beginning
-    for (int i = pos; i >= 0; i--)
-    {
-      leds[i] = CHSV(hue++, 255, 255);
-    }
-    // loop for the few LEds on the beginning
-    for (int i = pos + NUM_LEDS - SNAKE_LENGTH; i < NUM_LEDS; i++)
-    {
-      leds[i] = CHSV(hue++, 255, 255);
-    }
-  }
-  hue = oldHue + 10;
-}
-
-void simpleWhiteDotRunning()
-{
-  leds[prev_pos] = CRGB::Black;
-  leds[pos] = CRGB::White;
-  FastLED.show();
-}
-
-void ledCodeOnHalEvent()
-{
-  candyCane();
-}
-void ledCodeOnLoop()
-{
 }
 
 void UpdatePosition()
@@ -283,11 +180,20 @@ void UpdatePosition()
 
 void loop()
 {
-  // update position
-
   // slow updates here ...
+  EVERY_N_MILLISECONDS(60000) // Advance pixels to next position.
+  {
+    if (potentiometerPosition < (NUMBER_OF_ANIMATIONS - 1))
+      potentiometerPosition++;
+    else
+      potentiometerPosition = 0;
+
+    ledCodeOnSetup();
+  }
+
   EVERY_N_MILLISECONDS(5000) // Advance pixels to next position.
   {
+
     // potVal = analogRead(potPin);
     // Serial.print("potVal:");
     // Serial.println(potVal);

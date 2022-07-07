@@ -13,7 +13,7 @@ void setup()
 void loop()
 {
     potVal = analogRead(potPin);
-    Serial.println("potVal3:");
+    Serial.println("potVal4:");
     Serial.println(potVal);
     digitalToggleFast(LED_BUILTIN);
     delay(250);

@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "."
+		},
+		{
+			"name": "Revolution2",
+			"path": "..\\Revolution2"
+		}
+	],
+	"settings": {
+		"task.autoDetect": "off"
+	}
+}
