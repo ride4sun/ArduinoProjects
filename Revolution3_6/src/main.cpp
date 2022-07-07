@@ -33,15 +33,12 @@ QList<bool> eventList; // has all interrupt events
 bool lock = false;
 byte potPin = A0;
 int potVal = analogRead(A0);
+bool hallSensorActive = true;
+bool simulateHallSensorEvents = false;
 
 void interruptHall()
 {
-
-  Serial.println("------------------------------>");
-  Serial.println(eventList.length());
-  Serial.print("lock:");
-  Serial.println(lock ? "true" : "false");
-
+  hallSensorActive = true;
   // make sure there is only one event per magnet
   if (toggle == false)
   {
@@ -52,6 +49,15 @@ void interruptHall()
   {
     toggle = false;
   }
+
+  Serial.println("------------------------------>");
+  Serial.println(eventList.length());
+  Serial.print("lock:");
+  Serial.println(lock ? "true" : "false");
+}
+void interruptHallSimulated()
+{
+  eventList.push_back(true);
 }
 
 int potentiometerPosition = 4;
@@ -197,6 +203,22 @@ void loop()
     // potVal = analogRead(potPin);
     // Serial.print("potVal:");
     // Serial.println(potVal);
+
+    if (hallSensorActive == true)
+    {
+      hallSensorActive = false;
+      simulateHallSensorEvents = false;
+    }
+    else
+    {
+      simulateHallSensorEvents = true;
+    }
+  }
+
+  EVERY_N_MILLISECONDS(50) // Advance pixels to next position.
+  {
+    if (simulateHallSensorEvents)
+      interruptHallSimulated();
   }
 
   if (lock == false)
