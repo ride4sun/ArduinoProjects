@@ -16,10 +16,29 @@
 // #define FASTLED_ALLOW_INTERRUPTS 0 // Needed to fix jitter/fluttering!
 #include "FastLED.h"
 
-    CRGB ledsOne[NUM_LEDS_ONE]; // the led array representing the leds addressable by FASTLED
+CRGB ledsOne[NUM_LEDS_ONE]; // the led array representing the leds addressable by FASTLED
 #ifdef LED_STRING_TWO_PRESENT
 CRGB ledsTwo[NUM_LEDS_TWO]; // the led array representing the leds addressable by FASTLED
 #endif
+
+uint8_t numberOfAnimations = 0;
+uint8_t numberOfPotPositions = 0;
+
+class PotPosLimits
+{
+public:
+  PotPosLimits() {}
+
+  PotPosLimits(uint16_t st, uint16_t sp)
+  {
+    start = st;
+    stop = sp;
+  }
+  uint16_t start = 0;
+  uint16_t stop = 0;
+};
+
+PotPosLimits potPositions[12];
 
 ILedAnimation *ledFunctionsOne[] = {
     new HeartBeatAnimation(),
@@ -95,37 +114,38 @@ void interruptHallSimulated()
   eventList.push_back(true);
 }
 
-int potentiometerPosition = 0;
+int potPosition = 0;
 
 void ledCodeOnHalEvent()
 {
-  ILedAnimation *animation = ledFunctionsOne[potentiometerPosition];
+  ILedAnimation *animation = ledFunctionsOne[potPosition];
   animation->OnHallEvent(ledDataOne);
 
 #ifdef LED_STRING_TWO_PRESENT
-  animation = ledFunctionsTwo[potentiometerPosition];
+  animation = ledFunctionsTwo[potPosition];
   animation->OnHallEvent(ledDataTwo);
 #endif
 }
 
 void ledCodeOnLoop()
 {
-  ILedAnimation *animation = ledFunctionsOne[potentiometerPosition];
+
+  ILedAnimation *animation = ledFunctionsOne[potPosition];
   animation->OnFastLoop();
 
 #ifdef LED_STRING_TWO_PRESENT
-  animation = ledFunctionsTwo[potentiometerPosition];
+  animation = ledFunctionsTwo[potPosition];
   animation->OnFastLoop();
 #endif
 }
 
 void ledCodeOnSetup()
 {
-  ILedAnimation *animation = ledFunctionsOne[potentiometerPosition];
+  ILedAnimation *animation = ledFunctionsOne[potPosition];
   animation->OnSetup();
 
 #ifdef LED_STRING_TWO_PRESENT
-  animation = ledFunctionsTwo[potentiometerPosition];
+  animation = ledFunctionsTwo[potPosition];
   animation->OnSetup();
 #endif
 }
@@ -137,6 +157,7 @@ void showStartupAnimation()
   ledsTwo[0] = CRGB::Red;
 #endif
   FastLED.show();
+  Serial.println("red");
 
   delay(2500);
   ledsOne[1] = CRGB::Orange;
@@ -144,6 +165,7 @@ void showStartupAnimation()
   ledsTwo[1] = CRGB::Orange;
 #endif
   FastLED.show();
+  Serial.println("orange");
 
   delay(2500);
   ledsOne[2] = CRGB::Yellow;
@@ -151,20 +173,42 @@ void showStartupAnimation()
   ledsTwo[2] = CRGB::Yellow;
 #endif
   FastLED.show();
+  Serial.println("yellow");
 
   delay(2500);
   ledsOne[3] = CRGB::Green;
 #ifdef LED_STRING_TWO_PRESENT
   ledsTwo[3] = CRGB::Green;
 #endif
-
+  Serial.println("green");
   FastLED.show();
   delay(2500);
   FastLED.clear();
 }
 
+void initPot()
+{
+  potPositions[0] = PotPosLimits(100, 200);
+  potPositions[1] = PotPosLimits(201, 300);
+  potPositions[2] = PotPosLimits(100, 200);
+  potPositions[3] = PotPosLimits(100, 200);
+  potPositions[4] = PotPosLimits(100, 200);
+  potPositions[5] = PotPosLimits(100, 200);
+  potPositions[6] = PotPosLimits(100, 200);
+  potPositions[7] = PotPosLimits(100, 200);
+  potPositions[8] = PotPosLimits(100, 200);
+  potPositions[9] = PotPosLimits(100, 200);
+  potPositions[10] = PotPosLimits(100, 200);
+  potPositions[11] = PotPosLimits(100, 200);
+}
+
 void setup()
 {
+  initPot();
+
+  numberOfAnimations = sizeof(ledFunctionsOne) / sizeof(ledFunctionsOne[0]);
+  numberOfPotPositions = sizeof(potPosition) / sizeof(potPositions[0]);
+
   ledDataOne = {ledsOne, 0, 0, NUM_LEDS_ONE};
 #ifdef LED_STRING_TWO_PRESENT
   ledDataTwo = {ledsTwo, 0, 0, NUM_LEDS_TWO};
@@ -199,18 +243,10 @@ void setup()
 
   showStartupAnimation();
 
-  Serial.println("4 -------------");
-
-  // ledFunction selectedFunction = ledFunctionsOne[potentiometerPosition];
-  // if (selectedFunction.delta != NULL)
-  //   deltaOne = selectedFunction.delta;
-
-  Serial.println("5 -------------");
-
 #ifdef LED_STRING_TWO_PRESENT
-  // selectedFunction = ledFunctionsTwo[potentiometerPosition];
-  // if (selectedFunction.delta != NULL)
-  //   deltaTwo = selectedFunction.delta;
+// selectedFunction = ledFunctionsTwo[potPosition];
+// if (selectedFunction.delta != NULL)
+//   deltaTwo = selectedFunction.delta;
 #endif
 
   ledCodeOnSetup();
@@ -229,9 +265,10 @@ void setup()
 
 void UpdatePosition(struct ledData &data, uint16_t delta)
 {
-
+#ifdef SHOW_POSITION_PRINT_INFO
   Serial.print("pos one before:");
   Serial.println(data.pos);
+#endif
 
   data.lastPos = data.pos;
 
@@ -263,29 +300,46 @@ void UpdatePosition(struct ledData &data, uint16_t delta)
       // Serial.println(pos);
     }
   }
+#ifdef SHOW_POSITION_PRINT_INFO
   Serial.print("pos one after:");
   Serial.println(data.pos);
+#endif
 }
 
 void loop()
 {
   // slow updates here ...
-  EVERY_N_MILLISECONDS(60000) // Advance pixels to next position.
+  EVERY_N_MILLISECONDS(30000) // Advance pixels to next position.
   {
-    if (potentiometerPosition < (NUMBER_OF_ANIMATIONS - 1))
-      potentiometerPosition++;
-    else
-      potentiometerPosition = 0;
 
-    // ledCodeOnSetup();
+#ifdef AUTO_SELECT_ANIMATION
+    if (potPosition < (numberOfAnimations - 1))
+      potPosition++;
+    else
+      potPosition = 0;
+#endif
   }
 
   // no need to read the Potentiometer often
   EVERY_N_MILLISECONDS(1000)
   {
+
+#ifndef AUTO_SELECT_ANIMATION
     potVal = analogRead(potPin);
+    for (potPosition i = 0; i < numberOfPotPositions; ++potPosition)
+    {
+      PotPosLimits limits = potPositions[i];
+      if (potVal > limits.start && potVal <= limits.stop)
+        break;
+    }
+    Serial.print("pot Position:");
+    Serial.println(potPosition);
+#endif
+
+#ifdef SHOW_POTENTIOMETER_INFO
     Serial.print("potVal:");
     Serial.println(potVal);
+#endif
   }
 
   EVERY_N_MILLISECONDS(5000)
@@ -325,7 +379,7 @@ void loop()
       ledCodeOnHalEvent();
       FastLED.show();
 
-      Serial.println("led done");
+      // Serial.println("led done");
 
       // que makes sure that we dont miss interrupt events
       eventList.pop_back();

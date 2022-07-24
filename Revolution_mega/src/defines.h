@@ -27,9 +27,13 @@
 #define LED_STRING_TWO_PRESENT 
 
 #define BRIGHTNESS 100
+#define SIMULATED_INTERRUPT_TIME 100
 
-#define NUMBER_OF_ANIMATIONS 5 //valid for inner and outer animation (always the same for now)
-#define SIMULATED_INTERRUPT_TIME 20
+//use when the potentiometer is not present
+#define AUTO_SELECT_ANIMATION
+
+//#define SHOW_POSITION_PRINT_INFO
+#define SHOW_POTENTIOMETER_INFO
 
 
 struct ledData
