@@ -1,7 +1,7 @@
 #include <blueAndWhite.h>
 
-uint8_t bw_spacing= 3;
-uint8_t bw_width=1;
+uint16_t bw_spacing= 3;
+uint16_t bw_width=1;
 
 // set delta to 1 to work
 // void blueAndWhiteEvent(CRGB *leds, uint16_t pos, uint16_t lastPos)
@@ -21,7 +21,7 @@ uint8_t bw_width=1;
 // set delta to 1 to work
 void blueAndWhiteEvent(struct ledData data)
 {
-    for (uint16_t i = 0; i < data.numberOfLeds; i = (i + bw_spacing))
+    for (uint16_t i = 0; i < data.noOfLeds; i = (i + bw_spacing))
     {
         if ((i + data.pos) % 2)
         {
