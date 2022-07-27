@@ -351,7 +351,7 @@ void loop()
 
 void initAnimations()
 {
-  ledFunctionsOne[0] = new RotateAnimation(HUE_WHITE, HUE_RED, 5, 1, 2, NUM_LEDS_ONE);
+  ledFunctionsOne[0] = new RotateAnimation(HUE_WHITE, HUE_RED, 10, 1, 2, NUM_LEDS_ONE);
   ledFunctionsOne[1] = new JuggleAnimation();
   ledFunctionsOne[2] = new CandyCaneAnimation();
   ledFunctionsOne[3] = new BlueAndWhiteAnimation(HUE_RED, HUE_RED, 3, 3);
@@ -375,7 +375,7 @@ void initAnimations()
 
   ;
 #ifdef LED_STRING_TWO_PRESENT
-  ledFunctionsTwo[0] = new RotateAnimation(HUE_WHITE, HUE_WHITE, 2, 1, 2, NUM_LEDS_TWO);
+  ledFunctionsTwo[0] = new RotateAnimation(HUE_WHITE, HUE_WHITE, 3, 1, 2, NUM_LEDS_TWO);
   ledFunctionsTwo[1] = new JuggleAnimation();
   ledFunctionsTwo[2] = new CandyCaneAnimation();
   ledFunctionsTwo[3] = new BlueAndWhiteAnimation(HUE_WHITE, HUE_WHITE, 3, 3);

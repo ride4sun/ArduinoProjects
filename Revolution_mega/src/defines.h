@@ -13,7 +13,7 @@
 #define HALL_PIN  3  // Hall Sensor Pin used for interrupt
 
 #define NUM_LEDS_ONE 150 //testring
-#define NUM_LEDS_TWO 54 //inner ring - same as on card
+#define NUM_LEDS_TWO 52 //inner ring - same as on card
 
 //#define NUM_LEDS_ONE 306 //big Ring on Golfcart
 
