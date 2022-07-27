@@ -5,7 +5,7 @@
 #include <FastLED.h>
 #include "defines.h"
 
-class RainbowLedAnimation : public ILedAnimation
+class RainbowLedAnimation : public IAnimation
 {
 
     uint8_t rainbowHue = 0;
@@ -22,5 +22,6 @@ public:
     };
     void OnSetup() {}
     void OnFastLoop() {}
+    String Name() { return "Rainbow"; }
 };
 #endif

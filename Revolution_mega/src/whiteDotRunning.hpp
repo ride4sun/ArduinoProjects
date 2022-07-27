@@ -5,7 +5,7 @@
 #include <FastLED.h>
 #include "defines.h"
 
-class WhiteDotRunningAnimation : public ILedAnimation
+class WhiteDotRunningAnimation : public IAnimation
 {
 
 public:
@@ -17,6 +17,7 @@ public:
     };
     void OnSetup() {}
     void OnFastLoop() {}
+    String Name() { return "WhiteDotRunning"; }
 };
 
 #endif

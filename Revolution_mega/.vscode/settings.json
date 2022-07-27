@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.cps": "javascript",
+        "iomanip": "cpp",
+        "ios": "cpp",
+        "String": "cpp"
+    }
+}

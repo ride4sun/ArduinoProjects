@@ -13,7 +13,7 @@
 #define HALL_PIN  3  // Hall Sensor Pin used for interrupt
 
 #define NUM_LEDS_ONE 150 //testring
-#define NUM_LEDS_TWO 52 //inner ring - same as on card
+#define NUM_LEDS_TWO 54 //inner ring - same as on card
 
 //#define NUM_LEDS_ONE 306 //big Ring on Golfcart
 
@@ -30,11 +30,15 @@
 #define SIMULATED_INTERRUPT_TIME 100
 
 //use when the potentiometer is not present
-#define AUTO_SELECT_ANIMATION
+//#define AUTO_SELECT_ANIMATION
 
 //#define SHOW_POSITION_PRINT_INFO
 #define SHOW_POTENTIOMETER_INFO
+//#define SHOW_LOCK_AND_QUEUE_INFO
 
+
+
+#define HUE_WHITE 255
 
 struct ledData
 {
@@ -46,12 +50,14 @@ struct ledData
 
 
 
-class ILedAnimation
+class IAnimation
 {
 public:
    virtual void OnHallEvent(struct ledData) = 0;
    virtual void OnSetup() = 0;
    virtual void OnFastLoop() = 0;
+   virtual String Name() = 0;
+
 };
 
 #endif

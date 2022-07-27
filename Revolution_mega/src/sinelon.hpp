@@ -5,7 +5,7 @@
 #include <FastLED.h>
 #include "defines.h"
 
-class SinelonAnimation : public ILedAnimation
+class SinelonAnimation : public IAnimation
 {
     uint8_t gHue = 0;
 
@@ -20,12 +20,13 @@ public:
         //alternative comment out to be red
         gHue = beatsin8(13, 0, data.noOfLeds - 1);
         
-        //data.leds[data.pos] += CHSV(gHue, 255, 192);
+        data.leds[data.pos] += CHSV(gHue, 255, 192);
         //alternating
-        data.leds[pos] += CHSV(gHue, 255, 192);
+        //data.leds[pos] += CHSV(gHue, 255, 192);
     };
     void OnSetup() {}
     void OnFastLoop() {}
+    String Name() { return "Sinelon"; }
 };
 
 #endif

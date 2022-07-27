@@ -5,7 +5,7 @@
 #include <FastLED.h>
 #include "defines.h"
 
-class CandyCaneAnimation : public ILedAnimation
+class CandyCaneAnimation : public IAnimation
 {
     uint8_t numColors = 2;    // Can be either 2 or 3
     uint16_t stripeLength = 4; // number of pixels per color
@@ -31,6 +31,7 @@ public:
     };
     void OnSetup() {}
     void OnFastLoop() {}
+    String Name() { return "CandyCane"; }
 };
 
 

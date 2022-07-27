@@ -5,7 +5,7 @@
 #include <FastLED.h>
 #include "defines.h"
 
-class SnakeAnimation : public ILedAnimation
+class SnakeAnimation : public IAnimation
 {
     uint8_t snakeLength = 70;
     CRGB background = CRGB::Blue; // color used between color 2 (and 3 if used)
@@ -62,5 +62,6 @@ public:
     };
     void OnSetup() {}
     void OnFastLoop() {}
+    String Name() { return "Snake"; }
 };
 #endif

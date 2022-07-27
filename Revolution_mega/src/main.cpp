@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <rotate.hpp>
 #include <heartBeat.hpp>
 #include <sinelon.hpp>
 #include <bpm.hpp>
@@ -24,6 +25,11 @@ CRGB ledsTwo[NUM_LEDS_TWO]; // the led array representing the leds addressable b
 uint8_t numberOfAnimations = 0;
 uint8_t numberOfPotPositions = 0;
 
+IAnimation *activeAnimationOne;
+IAnimation *activeAnimationTwo;
+IAnimation *activeAnimationStationaryOne;
+IAnimation *activeAnimationStationaryTwo;
+
 class PotPosLimits
 {
 public:
@@ -40,32 +46,16 @@ public:
 
 PotPosLimits potPositions[12];
 
-ILedAnimation *ledFunctionsOne[] = {
-    new HeartBeatAnimation(),
-    new SinelonAnimation(),
-    new BpmAnimation(),
-    new JuggleAnimation(),
-    new CandyCaneAnimation(),
-    new WhiteDotRunningAnimation(),
-    new Rainbow2LedAnimation(),
-    new RainbowLedAnimation(),
-};
+IAnimation *ledFunctionsOne[12];
+IAnimation *ledFunctionsWhenStationaryOne[12];
 #ifdef LED_STRING_TWO_PRESENT
-
-ILedAnimation *ledFunctionsTwo[] = {
-    new HeartBeatAnimation(),
-    new SinelonAnimation(),
-    new BpmAnimation(),
-    new JuggleAnimation(),
-    new CandyCaneAnimation(),
-    new WhiteDotRunningAnimation(),
-    new Rainbow2LedAnimation(),
-    new RainbowLedAnimation()};
+IAnimation *ledFunctionsWhenStationaryTwo[12];
+IAnimation *ledFunctionsTwo[12];
 #endif
 
-uint16_t deltaOne = 2; // Sets forward or backwards direction amount. (Can be negative.) (delta = 1 WORKS)
+uint16_t deltaOne = 1; // Sets forward or backwards direction amount. (Can be negative.) (delta = 1 WORKS)
 #ifdef LED_STRING_TWO_PRESENT
-uint16_t deltaTwo = 2; // Sets forward or backwards direction amount. (Can be negative.) (delta = 1 WORKS)
+uint16_t deltaTwo = 1; // Sets forward or backwards direction amount. (Can be negative.) (delta = 1 WORKS)
 #endif
 
 bool startUpDone = false;
@@ -81,7 +71,7 @@ bool reverse = false; // the direction of the hall event
 QList<bool> eventList; // has all interrupt events
 bool lock = false;
 byte potPin = A0;
-int potVal = analogRead(A0);
+uint16_t potVal = analogRead(A0);
 bool hallSensorActive = true;
 bool simulateHallSensorEvents = true;
 
@@ -103,50 +93,53 @@ void interruptHall()
   {
     toggle = false;
   }
-
+#ifdef SHOW_LOCK_AND_QUEUE_INFO
   Serial.println("------------------------------>");
   Serial.println(eventList.length());
   Serial.print("lock:");
   Serial.println(lock ? "true" : "false");
+#endif
 }
 void interruptHallSimulated()
 {
   eventList.push_back(true);
 }
 
-int potPosition = 0;
+uint8_t potPosition = 0;
 
 void ledCodeOnHalEvent()
 {
-  ILedAnimation *animation = ledFunctionsOne[potPosition];
-  animation->OnHallEvent(ledDataOne);
+
+  activeAnimationOne->OnHallEvent(ledDataOne);
 
 #ifdef LED_STRING_TWO_PRESENT
-  animation = ledFunctionsTwo[potPosition];
-  animation->OnHallEvent(ledDataTwo);
+  activeAnimationTwo->OnHallEvent(ledDataTwo);
 #endif
 }
 
 void ledCodeOnLoop()
 {
-
-  ILedAnimation *animation = ledFunctionsOne[potPosition];
-  animation->OnFastLoop();
+  activeAnimationOne->OnFastLoop();
 
 #ifdef LED_STRING_TWO_PRESENT
-  animation = ledFunctionsTwo[potPosition];
-  animation->OnFastLoop();
+  activeAnimationTwo->OnFastLoop();
 #endif
 }
 
 void ledCodeOnSetup()
 {
-  ILedAnimation *animation = ledFunctionsOne[potPosition];
-  animation->OnSetup();
+  for (int i; i < numberOfAnimations; i++)
+  {
+    ledFunctionsOne[i]->OnSetup();
+    ledFunctionsWhenStationaryOne[i]->OnSetup();
+  }
 
 #ifdef LED_STRING_TWO_PRESENT
-  animation = ledFunctionsTwo[potPosition];
-  animation->OnSetup();
+  for (int i; i < numberOfAnimations; i++)
+  {
+    ledFunctionsTwo[i]->OnSetup();
+    ledFunctionsWhenStationaryTwo[i]->OnSetup();
+  }
 #endif
 }
 
@@ -188,81 +181,61 @@ void showStartupAnimation()
 
 void initPot()
 {
-  potPositions[0] = PotPosLimits(100, 200);
-  potPositions[1] = PotPosLimits(201, 300);
-  potPositions[2] = PotPosLimits(100, 200);
-  potPositions[3] = PotPosLimits(100, 200);
-  potPositions[4] = PotPosLimits(100, 200);
-  potPositions[5] = PotPosLimits(100, 200);
-  potPositions[6] = PotPosLimits(100, 200);
-  potPositions[7] = PotPosLimits(100, 200);
-  potPositions[8] = PotPosLimits(100, 200);
-  potPositions[9] = PotPosLimits(100, 200);
-  potPositions[10] = PotPosLimits(100, 200);
-  potPositions[11] = PotPosLimits(100, 200);
+  potPositions[0] = PotPosLimits(0, 50);
+  potPositions[1] = PotPosLimits(51, 149);
+  potPositions[2] = PotPosLimits(150, 200);
+  potPositions[3] = PotPosLimits(201, 300);
+  potPositions[4] = PotPosLimits(301, 400);
+  potPositions[5] = PotPosLimits(401, 500);
+  potPositions[6] = PotPosLimits(501, 600);
+  potPositions[7] = PotPosLimits(601, 700);
+  potPositions[8] = PotPosLimits(701, 800);
+  potPositions[9] = PotPosLimits(801, 900);
+  potPositions[11] = PotPosLimits(901, 1200);
 }
 
-void setup()
+void UpdatePotPosition()
 {
-  initPot();
-
-  numberOfAnimations = sizeof(ledFunctionsOne) / sizeof(ledFunctionsOne[0]);
-  numberOfPotPositions = sizeof(potPosition) / sizeof(potPositions[0]);
-
-  ledDataOne = {ledsOne, 0, 0, NUM_LEDS_ONE};
-#ifdef LED_STRING_TWO_PRESENT
-  ledDataTwo = {ledsTwo, 0, 0, NUM_LEDS_TWO};
+  PotPosLimits limits;
+  potVal = analogRead(potPin);
+#ifdef SHOW_POTENTIOMETER_INFO
+  Serial.print("potVal - read:");
+  Serial.println(potVal);
 #endif
 
-  Serial.begin(115200);
-  Serial.println("Setup start --------------------------------------");
-  FastLED.clear();
-  delay(1600); // Startup delay
+  for (uint8_t i = 0; i < numberOfPotPositions; i++)
+  {
+    limits = potPositions[i];
+    if (potVal >= limits.start && potVal < limits.stop)
+    {
+      potPosition = i;
+      break;
+    }
+  }
 
-  pinMode(HALL_PIN, INPUT_PULLUP);
-  pinMode(LED_BUILTIN, OUTPUT);
-
-  // setup Interrupt
-  attachInterrupt(digitalPinToInterrupt(HALL_PIN), interruptHall, CHANGE);
-
-  Serial.println("1 -------------");
-
-  FastLED.addLeds<LED_TYPE, DATA_PIN_ONE, GRB>(ledsOne, NUM_LEDS_ONE);
-#ifdef LED_STRING_TWO_PRESENT
-  FastLED.addLeds<LED_TYPE, DATA_PIN_TWO, GRB>(ledsTwo, NUM_LEDS_TWO);
-#endif
-
-  // 4 Wire LED setup
-  // FastLED.addLeds<LED_TYPE, DATA_PIN_ONE, CLK_PIN, COLOR_ORDER>(ledsOne, NUM_LEDS_ONE).setCorrection(TypicalLEDStrip); // with clock_pin
-
-  Serial.println("2 -------------");
-
-  FastLED.setBrightness(BRIGHTNESS);
-
-  Serial.println("3 -------------");
-
-  showStartupAnimation();
+  activeAnimationOne = ledFunctionsOne[potPosition];
+  activeAnimationStationaryOne = ledFunctionsWhenStationaryOne[potPosition];
 
 #ifdef LED_STRING_TWO_PRESENT
-// selectedFunction = ledFunctionsTwo[potPosition];
-// if (selectedFunction.delta != NULL)
-//   deltaTwo = selectedFunction.delta;
+  activeAnimationTwo = ledFunctionsTwo[potPosition];
+  activeAnimationStationaryTwo = ledFunctionsWhenStationaryTwo[potPosition];
 #endif
 
-  ledCodeOnSetup();
+#ifdef SHOW_POTENTIOMETER_INFO
 
-  Serial.println("6 -------------");
+  Serial.print("potVal:");
+  Serial.println(potVal);
+  Serial.print("pot Position:");
+  Serial.println(potPosition);
+  Serial.print("Limit start: ");
+  Serial.println(limits.start);
+  Serial.print("Limit stop: ");
+  Serial.println(limits.stop);
+  Serial.print("Active Animation One: ");
+  Serial.println(activeAnimationOne->Name());
 
-  Serial.print("NUM_LEDS_ONE: ");
-  Serial.println(NUM_LEDS_ONE);
-  Serial.print("no Of Leds: ");
-  Serial.println(ledDataOne.noOfLeds);
-
-  Serial.println("Setup done --------------------------------------");
-
-  startUpDone = true;
+#endif
 }
-
 void UpdatePosition(struct ledData &data, uint16_t delta)
 {
 #ifdef SHOW_POSITION_PRINT_INFO
@@ -323,22 +296,8 @@ void loop()
   // no need to read the Potentiometer often
   EVERY_N_MILLISECONDS(1000)
   {
-
 #ifndef AUTO_SELECT_ANIMATION
-    potVal = analogRead(potPin);
-    for (potPosition i = 0; i < numberOfPotPositions; ++potPosition)
-    {
-      PotPosLimits limits = potPositions[i];
-      if (potVal > limits.start && potVal <= limits.stop)
-        break;
-    }
-    Serial.print("pot Position:");
-    Serial.println(potPosition);
-#endif
-
-#ifdef SHOW_POTENTIOMETER_INFO
-    Serial.print("potVal:");
-    Serial.println(potVal);
+    UpdatePotPosition();
 #endif
   }
 
@@ -388,4 +347,126 @@ void loop()
 
     lock = false;
   }
+}
+
+void initAnimations()
+{
+  ledFunctionsOne[0] = new RotateAnimation(HUE_WHITE, HUE_RED, 5, 1, 2, NUM_LEDS_ONE);
+  ledFunctionsOne[1] = new JuggleAnimation();
+  ledFunctionsOne[2] = new CandyCaneAnimation();
+  ledFunctionsOne[3] = new BlueAndWhiteAnimation(HUE_RED, HUE_RED, 3, 3);
+  ledFunctionsOne[4] = new HeartBeatAnimation();
+  ledFunctionsOne[5] = new SinelonAnimation();
+  ledFunctionsOne[6] = new BpmAnimation();
+  ledFunctionsOne[7] = new WhiteDotRunningAnimation();
+  ledFunctionsOne[8] = new Rainbow2LedAnimation();
+  ledFunctionsOne[9] = new RainbowLedAnimation();
+
+  ledFunctionsWhenStationaryOne[0] = new RotateAnimation(HUE_WHITE, HUE_RED, 20, 6, 2, NUM_LEDS_ONE);
+  ledFunctionsWhenStationaryOne[1] = new JuggleAnimation();
+  ledFunctionsWhenStationaryOne[2] = new CandyCaneAnimation();
+  ledFunctionsWhenStationaryOne[3] = new BlueAndWhiteAnimation(HUE_RED, HUE_RED, 3, 3);
+  ledFunctionsWhenStationaryOne[4] = new HeartBeatAnimation();
+  ledFunctionsWhenStationaryOne[5] = new SinelonAnimation();
+  ledFunctionsWhenStationaryOne[6] = new BpmAnimation();
+  ledFunctionsWhenStationaryOne[7] = new WhiteDotRunningAnimation();
+  ledFunctionsWhenStationaryOne[8] = new Rainbow2LedAnimation();
+  ledFunctionsWhenStationaryOne[9] = new RainbowLedAnimation();
+
+  ;
+#ifdef LED_STRING_TWO_PRESENT
+  ledFunctionsTwo[0] = new RotateAnimation(HUE_WHITE, HUE_WHITE, 2, 1, 2, NUM_LEDS_TWO);
+  ledFunctionsTwo[1] = new JuggleAnimation();
+  ledFunctionsTwo[2] = new CandyCaneAnimation();
+  ledFunctionsTwo[3] = new BlueAndWhiteAnimation(HUE_WHITE, HUE_WHITE, 3, 3);
+  ledFunctionsTwo[4] = new HeartBeatAnimation();
+  ledFunctionsTwo[5] = new SinelonAnimation();
+  ledFunctionsTwo[6] = new BpmAnimation();
+  ledFunctionsTwo[7] = new WhiteDotRunningAnimation();
+  ledFunctionsTwo[8] = new Rainbow2LedAnimation();
+  ledFunctionsTwo[9] = new RainbowLedAnimation();
+
+  
+
+  ledFunctionsWhenStationaryTwo[0] = new RotateAnimation(HUE_WHITE, HUE_RED, 4, 2, 2, NUM_LEDS_TWO);
+  ledFunctionsWhenStationaryTwo[1] = new JuggleAnimation();
+  ledFunctionsWhenStationaryTwo[2] = new CandyCaneAnimation();
+  ledFunctionsWhenStationaryTwo[3] = new BlueAndWhiteAnimation(CRGB::Black, CRGB::Blue, 3, 3);
+  ledFunctionsWhenStationaryTwo[4] = new HeartBeatAnimation();
+  ledFunctionsWhenStationaryTwo[5] = new SinelonAnimation();
+  ledFunctionsWhenStationaryTwo[6] = new BpmAnimation();
+  ledFunctionsWhenStationaryTwo[7] = new WhiteDotRunningAnimation();
+  ledFunctionsWhenStationaryTwo[8] = new Rainbow2LedAnimation();
+  ledFunctionsWhenStationaryTwo[9] = new RainbowLedAnimation();
+#endif
+}
+
+void setup()
+{
+
+  initAnimations();
+
+  initPot();
+
+  // numberOfAnimations = sizeof(ledFunctionsOne) / sizeof(ledFunctionsOne[0]);
+  numberOfAnimations = 10;
+  numberOfPotPositions = 12;
+
+#ifndef AUTO_SELECT_ANIMATION
+  UpdatePotPosition();
+#endif
+
+  // sizeof(potPosition) / sizeof(potPositions[0]); //results in 0
+
+  ledDataOne = {ledsOne, 0, 0, NUM_LEDS_ONE};
+#ifdef LED_STRING_TWO_PRESENT
+  ledDataTwo = {ledsTwo, 0, 0, NUM_LEDS_TWO};
+#endif
+
+  Serial.begin(115200);
+  Serial.println("Setup start --------------------------------------");
+  Serial.print("Number of Pot Positions:");
+  Serial.println(numberOfPotPositions);
+  Serial.print("Number of Animations:");
+  Serial.println(numberOfAnimations);
+
+  FastLED.clear();
+  delay(1600); // Startup delay
+
+  pinMode(HALL_PIN, INPUT_PULLUP);
+  pinMode(LED_BUILTIN, OUTPUT);
+
+  // setup Interrupt
+  attachInterrupt(digitalPinToInterrupt(HALL_PIN), interruptHall, CHANGE);
+
+  Serial.println("1 -------------");
+
+  FastLED.addLeds<LED_TYPE, DATA_PIN_ONE, GRB>(ledsOne, NUM_LEDS_ONE);
+#ifdef LED_STRING_TWO_PRESENT
+  FastLED.addLeds<LED_TYPE, DATA_PIN_TWO, GRB>(ledsTwo, NUM_LEDS_TWO);
+#endif
+
+  // 4 Wire LED setup
+  // FastLED.addLeds<LED_TYPE, DATA_PIN_ONE, CLK_PIN, COLOR_ORDER>(ledsOne, NUM_LEDS_ONE).setCorrection(TypicalLEDStrip); // with clock_pin
+
+  Serial.println("2 -------------");
+
+  FastLED.setBrightness(BRIGHTNESS);
+
+  Serial.println("3 -------------");
+
+  showStartupAnimation();
+
+  ledCodeOnSetup();
+
+  Serial.println("6 -------------");
+
+  Serial.print("NUM_LEDS_ONE: ");
+  Serial.println(NUM_LEDS_ONE);
+  Serial.print("no Of Leds: ");
+  Serial.println(ledDataOne.noOfLeds);
+
+  Serial.println("Setup done --------------------------------------");
+
+  startUpDone = true;
 }

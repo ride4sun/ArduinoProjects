@@ -5,7 +5,7 @@
 #include <FastLED.h>
 #include "defines.h"
 
-class BpmAnimation : public ILedAnimation
+class BpmAnimation : public IAnimation
 {
     uint8_t BeatsPerMinute = 62;
     CRGBPalette16 palette = PartyColors_p;
@@ -21,6 +21,7 @@ public:
     };
     void OnSetup() {}
     void OnFastLoop() {}
+    String Name() { return "BPM"; }
 };
 
 #endif

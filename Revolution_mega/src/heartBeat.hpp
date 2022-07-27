@@ -5,7 +5,7 @@
 #include <FastLED.h>
 #include "defines.h"
 
-class HeartBeatAnimation : public ILedAnimation
+class HeartBeatAnimation : public IAnimation
 {
     uint8_t gHue = 0;
 
@@ -34,6 +34,7 @@ public:
     };
     void OnSetup() {}
     void OnFastLoop() {}
+    String Name() { return "HeartBeat"; }
 };
 
 #endif
