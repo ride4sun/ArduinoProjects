@@ -351,7 +351,7 @@ void loop()
 
 void initAnimations()
 {
-  ledFunctionsOne[0] = new RotateAnimation(HUE_WHITE, HUE_RED, 10, 1, 2, NUM_LEDS_ONE);
+  ledFunctionsOne[0] = new RotateAnimation(HUE_WHITE, HUE_RED, 6, 1, 2, NUM_LEDS_ONE);
   ledFunctionsOne[1] = new JuggleAnimation();
   ledFunctionsOne[2] = new CandyCaneAnimation();
   ledFunctionsOne[3] = new BlueAndWhiteAnimation(HUE_RED, HUE_RED, 3, 3);
