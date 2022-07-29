@@ -30,32 +30,31 @@ public:
 public:
     void OnHallEvent(struct ledData data)
     {
-       fadeToBlackBy(data.leds, data.noOfLeds, 50);
+        fadeToBlackBy(data.leds, data.noOfLeds, 50);
         // for (uint16_t i = 0; i < data.noOfLeds; i++)
         // {
         //     data.leds[i] = CRGB::Black;
         // }
 
         uint16_t currentPos;
-        uint16_t correctedPos;
+        
         // data.leds[data.lastPos] = CRGB::Black;
         // data.leds[data.pos] = CRGB::White;
         for (uint16_t s = 0; s < noOfSpots; s++)
         {
-            currentPos = data.pos +(gap * s);
-            
+            currentPos = data.pos + (gap * s);
 
             for (uint16_t i = 0; i < spotLength; i++)
             {
-                data.leds[correctedPos] = CHSV(HUE_BLUE, 255, 255);
-                correctedPos = (currentPos + i) % data.noOfLeds;
+                currentPos = (currentPos + i) % data.noOfLeds;
+                data.leds[currentPos] = CHSV(HUE_BLUE, 255, 255);
             }
         }
 
-        //fadeToBlackBy(data.leds, numberOfLeds, 5);
-
+        // fadeToBlackBy(data.leds, numberOfLeds, 5);
     };
-    void OnSetup() {
+    void OnSetup()
+    {
 
         Serial.println("-- -- -- -- --Rotate setup start-- -- -- -- -- -- -- --");
         this->gap = numberOfLeds / noOfSpots;
