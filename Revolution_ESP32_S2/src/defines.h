@@ -9,11 +9,8 @@
 //#define LED_TYPE APA102
 //#define CLK_PIN   13 // Don't need for WS2812b but necessary for APA102 (4 wire LED's)
 
-#define HALL_PIN  3  // Hall Sensor Pin used for interrupt
 
-#define BEAT_ANIMATION_SUPPORTED
-#define BEAT_PIN  6  // Beat Switch Pin used for interrupt
-#define RESET_BEAT_AFTER_DELAY_TIME  3000  // Reset the Beat detection after the user did not press the button for more than 3000
+#define HALL_PIN  3  // Hall Sensor Pin used for interrupt
 
 #define NUM_LEDS_ONE 150 //testring
 #define NUM_LEDS_TWO 52 //inner ring - same as on card
@@ -35,10 +32,8 @@
 //use when the potentiometer is not present
 //#define AUTO_SELECT_ANIMATION
 
-
-
 //#define SHOW_POSITION_PRINT_INFO
-//#define SHOW_POTENTIOMETER_INFO
+#define SHOW_POTENTIOMETER_INFO
 //#define SHOW_LOCK_AND_QUEUE_INFO
 
 
@@ -62,9 +57,7 @@ public:
    virtual void OnSetup() = 0;
    virtual void OnFastLoop() = 0;
    virtual String Name() = 0;
-   
-   virtual bool IsBeatSupported(){return false;}
-   virtual void OnBeat(struct ledData){};
+
 };
 
 #endif

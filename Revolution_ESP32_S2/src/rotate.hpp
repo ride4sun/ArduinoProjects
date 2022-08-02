@@ -48,40 +48,38 @@ public:
     {
         if (colorMode == OneColorFade || colorMode == TwoColorFade || colorMode == RainBowFade)
             fadeToBlackBy(data.leds, data.noOfLeds, fadeRatio);
-        else{
+        else
             FastLED.clear();
-            // for (uint16_t b = 0; b < data.noOfLeds; b++)
-            //     data.leds[b] = CRGB::Black;
-        }
-            
-        uint16_t currentPos;
-        uint16_t correctedPos;
 
-        for (uint8_t s = 0; s < noOfSpots; s++)
+        uint16_t currentPos;
+
+        // data.leds[data.lastPos] = CRGB::Black;
+        // data.leds[data.pos] = CRGB::White;
+        for (uint16_t s = 0; s < noOfSpots; s++)
         {
-            currentPos = (data.pos + (s * gap)) % data.noOfLeds;
+            currentPos = data.pos + (gap * s);
 
             for (uint16_t i = 0; i < spotLength; i++)
             {
-                correctedPos  = (currentPos + i) % data.noOfLeds;
-
+                currentPos = (currentPos + i) % data.noOfLeds;
                 if (colorMode == RainBow || colorMode == RainBowFade)
                 {
-                    data.leds[correctedPos] = CHSV(rainbowHue, 255, 255);
+                    data.leds[currentPos] = CHSV((rainbowHue + i), 255, 255);
+                    rainbowHue += spotLength;
                 }
                 else
                 {
                     if (toggleColor)
-                        data.leds[correctedPos] = colorTwo;
+                        data.leds[currentPos] = colorTwo;
                     else
-                        data.leds[correctedPos] = colorOne;
+                        data.leds[currentPos] = colorOne;
                 }
             }
-            rainbowHue += 2;
-
             if (colorToggle)
                 toggleColor = !toggleColor;
         }
+
+        // fadeToBlackBy(data.leds, numberOfLeds, 5);
     };
     void OnSetup()
     {

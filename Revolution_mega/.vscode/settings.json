@@ -3,6 +3,12 @@
         "*.cps": "javascript",
         "iomanip": "cpp",
         "ios": "cpp",
-        "String": "cpp"
+        "String": "cpp",
+        "bitset": "cpp",
+        "deque": "cpp",
+        "sstream": "cpp",
+        "valarray": "cpp",
+        "char_traits": "cpp",
+        "complex": "cpp"
     }
 }

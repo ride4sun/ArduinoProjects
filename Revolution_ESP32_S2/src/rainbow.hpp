@@ -16,7 +16,7 @@ public:
     {
         for (uint16_t i = 0; i < data.noOfLeds; ++i)
         {
-            data.leds[i] = CHSV(rainbowHue + (i), 255, 200);
+            data.leds[i] = CHSV(rainbowHue + (i * 10), 255, 200);
         }
         rainbowHue += 20;
     };
