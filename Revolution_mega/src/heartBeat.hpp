@@ -8,32 +8,28 @@
 class HeartBeatAnimation : public IAnimation
 {
     uint8_t gHue = 0;
+    uint8_t BeatsPerMinute = 62;
+    CRGBPalette16 palette = PartyColors_p;
 
 public:
     HeartBeatAnimation() {}
 
-    void OnHallEvent(struct ledData data)  {
-        // a colored dot sweeping back and forth, with fading trails
-        //fadeToBlackBy(data.leds, data.noOfLeds, 20);
-        // int pos = beatsin16(13, 0, data.noOfLeds - 1);
-
-        //alternative comment out to be red
-        gHue = beatsin8(0, 8, data.noOfLeds - 1);
-
-        for (uint16_t i = 0; i < data.noOfLeds; ++i)
-        {
-            data.leds[i] = CHSV(gHue + (i * 10), 255, 255);
-        }
-
-        gHue += 20;
-        //rainbowHue += 20;
-
-        //data.leds[data.pos] += CHSV(gHue, 255, 192);
-        //alternating
-        //data.leds[pos] += CHSV(gHue, 255, 192);
-    };
+    void OnHallEvent(struct ledData data)  { }
     void OnSetup() {}
-    void OnFastLoop() {}
+    
+
+    bool IsBeatSupported() { return true; }
+    void OnBeat(struct ledData data){
+        
+        uint8_t beat = beatsin8(BeatsPerMinute, 64, 255);
+        // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
+        for (uint16_t i = 0; i < data.noOfLeds; i++)
+        { // 9948
+            data.leds[i] = ColorFromPalette(palette, gHue + (i * 2), beat - gHue + (i * 10));
+        }
+        gHue++;
+
+    };
     String Name() { return "HeartBeat"; }
 };
 

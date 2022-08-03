@@ -67,8 +67,7 @@ struct ledData ledDataTwo;
 
 bool reverse = false; // the direction of the hall event
 
-QList<bool> eventList;         // has all interrupt events
-QList<uint16_t> beatEventList; // holds the event ms events from a certain start - used to calculate the beat
+QList<bool> eventList; // has all interrupt events
 bool lock = false;
 byte potPin = A0;
 uint16_t potVal = analogRead(A0);
@@ -76,6 +75,8 @@ bool hallSensorActive = true;
 bool simulateHallSensorEvents = true;
 
 #ifdef BEAT_ANIMATION_SUPPORTED
+
+bool beatLock = false;
 long previousTime = 0;
 long currentTime = 0;
 long deltaTime = 0;
@@ -83,25 +84,44 @@ long nextBeat = 0;
 uint16_t averageBeatTime;
 uint16_t beatStartedAgo;
 long now = 0;
+QList<uint16_t> beatEventList; // has all interrupt events
 int lastBeatQueLength = 0;
 
 void interruptBeat()
 {
+  if (beatLock)
+    return;
+  beatLock = true;
+
+#ifdef SHOW_BEAT_INFO
+  Serial.println("BEAT-----------------");
+#endif
+
   if (startUpDone == false)
     return;
 
   // startup
   if (previousTime == 0)
   {
+#ifdef SHOW_BEAT_INFO
+    Serial.println("BEAT-------lock first time--");
+#endif
+
     previousTime = millis();
   }
   else
   {
+
+#ifdef SHOW_BEAT_INFO
+    Serial.println("BEAT-------lock next time--");
+#endif
+
     currentTime = millis();
     deltaTime = currentTime - previousTime;
     previousTime = currentTime;
     eventList.push_back(deltaTime);
   }
+  beatLock = false;
 }
 #endif
 
@@ -129,8 +149,13 @@ void interruptHallSimulated()
 uint8_t potPosition = 0;
 
 #ifdef BEAT_ANIMATION_SUPPORTED
-void OnBeat()
+void OnStationaryBeatAnimation()
 {
+
+#ifdef SHOW_BEAT_INFO
+  Serial.println("BEAT-------FIRE-----");
+#endif
+
   if (activeAnimationStationaryOne->IsBeatSupported())
   {
     activeAnimationStationaryOne->OnBeat(ledDataOne);
@@ -148,20 +173,42 @@ void OnBeat()
 
 void ledCodeOnHalEvent()
 {
-
-  activeAnimationOne->OnHallEvent(ledDataOne);
+  if (simulateHallSensorEvents)
+  {
+    if (activeAnimationStationaryOne->IsBeatSupported())
+      activeAnimationStationaryOne->OnBeat(ledDataOne);
+    else
+      activeAnimationStationaryOne->OnHallEvent(ledDataOne);
 
 #ifdef LED_STRING_TWO_PRESENT
-  activeAnimationTwo->OnHallEvent(ledDataTwo);
+    if (activeAnimationStationaryTwo->IsBeatSupported())
+      activeAnimationStationaryTwo->OnBeat(ledDataTwo);
+    else
+      activeAnimationStationaryTwo->OnHallEvent(ledDataTwo);
 #endif
+  }
+  else
+  {
+    if (activeAnimationOne->IsBeatSupported())
+      activeAnimationOne->OnBeat(ledDataOne);
+    else
+      activeAnimationOne->OnHallEvent(ledDataOne);
+
+#ifdef LED_STRING_TWO_PRESENT
+    if (activeAnimationTwo->IsBeatSupported())
+      activeAnimationTwo->OnBeat(ledDataTwo);
+    else
+      activeAnimationTwo->OnHallEvent(ledDataTwo);
+#endif
+  }
 }
 
 void ledCodeOnLoop()
 {
-  activeAnimationOne->OnFastLoop();
+  activeAnimationOne->OnFastLoop(ledDataOne);
 
 #ifdef LED_STRING_TWO_PRESENT
-  activeAnimationTwo->OnFastLoop();
+  activeAnimationTwo->OnFastLoop(ledDataTwo);
 #endif
 }
 
@@ -191,7 +238,7 @@ void showStartupAnimation()
   FastLED.show();
   Serial.println("red");
 
-  delay(2500);
+  delay(2000);
   ledsOne[1] = CRGB::Orange;
 #ifdef LED_STRING_TWO_PRESENT
   ledsTwo[1] = CRGB::Orange;
@@ -199,7 +246,7 @@ void showStartupAnimation()
   FastLED.show();
   Serial.println("orange");
 
-  delay(2500);
+  delay(2000);
   ledsOne[2] = CRGB::Yellow;
 #ifdef LED_STRING_TWO_PRESENT
   ledsTwo[2] = CRGB::Yellow;
@@ -207,14 +254,14 @@ void showStartupAnimation()
   FastLED.show();
   Serial.println("yellow");
 
-  delay(2500);
+  delay(2000);
   ledsOne[3] = CRGB::Green;
 #ifdef LED_STRING_TWO_PRESENT
   ledsTwo[3] = CRGB::Green;
 #endif
   Serial.println("green");
   FastLED.show();
-  delay(2500);
+  delay(2000);
   FastLED.clear();
 }
 
@@ -242,10 +289,16 @@ void CalculateBeat()
   if (deltaTime > RESET_BEAT_AFTER_DELAY_TIME)
   {
     // RESET
+#ifdef SHOW_BEAT_INFO
+    Serial.println("BEAT-------RESET-----");
+#endif
+
     eventList.clear();
     averageBeatTime = 0;
     beatStartedAgo = 0;
     lastBeatQueLength = 0;
+    previousTime = 0;
+    currentTime = 0;
   }
   else
   {
@@ -261,6 +314,15 @@ void CalculateBeat()
       }
       long beatStartTime = now - beatStartedAgo;
       nextBeat = beatStartTime + (beatStartedAgo / averageBeatTime) + averageBeatTime;
+#ifdef SHOW_BEAT_INFO
+      Serial.println("BEAT-------CALCULATED-----");
+#endif
+    }
+    else
+    {
+#ifdef SHOW_BEAT_INFO
+      // Serial.println("BEAT-------LIST TO SHORT-----");
+#endif
     }
   }
 }
@@ -353,6 +415,13 @@ void UpdatePosition(struct ledData &data, uint16_t delta)
 
 void loop()
 {
+#ifdef AUTO_FIRE_BEAT
+  EVERY_N_MILLISECONDS(BEAT_SIMULATION_MS) // Advance pixels to next position.
+  {
+    OnStationaryBeatAnimation();
+  }
+#endif
+
   // slow updates here ...
   EVERY_N_MILLISECONDS(30000) // Advance pixels to next position.
   {
@@ -388,8 +457,10 @@ void loop()
 
   EVERY_N_MILLISECONDS(SIMULATED_INTERRUPT_TIME) // Advance pixels to next position.
   {
+#ifdef SIMULATED_INTERRUPT
     if (simulateHallSensorEvents)
       interruptHallSimulated();
+#endif
   }
 
   if (lock == false)
@@ -419,12 +490,17 @@ void loop()
   }
 
 #ifdef BEAT_ANIMATION_SUPPORTED
-  CalculateBeat();
-
-  if (now > nextBeat)
+  if (!beatLock)
   {
-    nextBeat = now + averageBeatTime;
-    OnBeat();
+    beatLock = true;
+    CalculateBeat();
+
+    if (now > nextBeat)
+    {
+      nextBeat = now + averageBeatTime;
+      OnStationaryBeatAnimation();
+    }
+    beatLock = false;
   }
 #endif
 }
@@ -444,8 +520,11 @@ void initAnimations()
   ledFunctionsOne[10] = new JuggleAnimation();
   ledFunctionsOne[11] = new SinelonAnimation();
 
-  ledFunctionsWhenStationaryOne[0] = new RotateAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 1, 40, 12, NUM_LEDS_ONE);
-  ledFunctionsWhenStationaryOne[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
+  ledFunctionsWhenStationaryOne[0] = new HeartBeatAnimation();
+  ledFunctionsWhenStationaryOne[1] = new JuggleAnimation();
+  ledFunctionsWhenStationaryOne[2] = new BpmAnimation();
+
+  // ledFunctionsWhenStationaryOne[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
   ledFunctionsWhenStationaryOne[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
   ledFunctionsWhenStationaryOne[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
   ledFunctionsWhenStationaryOne[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
@@ -471,7 +550,8 @@ void initAnimations()
   ledFunctionsTwo[10] = new JuggleAnimation();
   ledFunctionsTwo[11] = new SinelonAnimation();
 
-  ledFunctionsWhenStationaryTwo[0] = new RotateAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 1, 20, 12, NUM_LEDS_TWO);
+  ledFunctionsWhenStationaryTwo[0] = new JuggleAnimation();
+  //ledFunctionsWhenStationaryTwo[0] = new RotateAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 1, 20, 12, NUM_LEDS_TWO);
   ledFunctionsWhenStationaryTwo[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
   ledFunctionsWhenStationaryTwo[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
   ledFunctionsWhenStationaryTwo[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 2, 10, 120, NUM_LEDS_TWO);

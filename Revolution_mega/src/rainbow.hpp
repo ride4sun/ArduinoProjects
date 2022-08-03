@@ -21,7 +21,7 @@ public:
         rainbowHue += 20;
     };
     void OnSetup() {}
-    void OnFastLoop() {}
+    
     String Name() { return "Rainbow"; }
 };
 #endif

@@ -61,7 +61,7 @@ public:
         snakeHue = oldHue + 10;
     };
     void OnSetup() {}
-    void OnFastLoop() {}
+    
     String Name() { return "Snake"; }
 };
 #endif

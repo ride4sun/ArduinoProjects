@@ -7,21 +7,33 @@
 
 class BpmAnimation : public IAnimation
 {
-    uint8_t BeatsPerMinute = 62;
-    CRGBPalette16 palette = PartyColors_p;
-    uint8_t beat = beatsin8(BeatsPerMinute, 64, 255);
+    bool toggle = false;
     uint8_t gHue = 0;
 
 public:
     BpmAnimation() {}
-
-    void OnHallEvent(struct ledData data)  {
-        // colored stripes pulsing at a defined Beats-Per-Minute (BPM)
-        data.leds[data.pos] = ColorFromPalette(palette, gHue + (data.pos * 1), beat - gHue + (data.pos * 30));
-    };
+    void OnHallEvent(struct ledData data) {}
     void OnSetup() {}
     void OnFastLoop() {}
     String Name() { return "BPM"; }
-};
 
+    bool IsBeatSupported() { return true; }
+    void OnBeat(struct ledData data)
+    {
+        // fadeToBlackBy(data.leds, data.noOfLeds, 150);
+        
+
+        for (uint16_t i = 0; i < data.noOfLeds; i++)
+        { // 9948
+            uint8_t beat = beatsin8(i, 0, 30);
+            if (toggle)
+                data.leds[i] = CHSV(beat, 255, 255);
+            else
+                data.leds[i] = CRGB::Black;
+        }
+        gHue++;
+        toggle = !toggle;
+        // gHue++;
+    };
+};
 #endif

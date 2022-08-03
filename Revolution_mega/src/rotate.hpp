@@ -107,7 +107,7 @@ public:
 
         Serial.println("----------Rotate setup end----------------");
     }
-    void OnFastLoop() {}
+    
     String Name() { return "Rotate"; }
 };
 

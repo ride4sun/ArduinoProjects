@@ -25,7 +25,6 @@ public:
         //data.leds[pos] += CHSV(gHue, 255, 192);
     };
     void OnSetup() {}
-    void OnFastLoop() {}
     String Name() { return "Sinelon"; }
 };
 

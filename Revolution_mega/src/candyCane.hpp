@@ -30,7 +30,7 @@ public:
         }
     };
     void OnSetup() {}
-    void OnFastLoop() {}
+    
     String Name() { return "CandyCane"; }
 };
 
