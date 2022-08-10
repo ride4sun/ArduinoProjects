@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <rotate.hpp>
+#include <leftRight.hpp>
+#include <applause.hpp>
 #include <heartBeat.hpp>
 #include <sinelon.hpp>
 #include <bpm.hpp>
@@ -77,8 +79,6 @@ bool simulateHallSensorEvents = true;
 #ifdef BEAT_ANIMATION_SUPPORTED
 
 bool beatLock = false;
-long previousTime = 0;
-long currentTime = 0;
 long deltaTime = 0;
 long nextBeat = 0;
 uint16_t averageBeatTime;
@@ -87,40 +87,70 @@ long now = 0;
 QList<uint16_t> beatEventList; // has all interrupt events
 int lastBeatQueLength = 0;
 
-void interruptBeat()
+long previousTime = 0;
+long currentTime = 0;
+
+// returns true if the pin read was valid
+bool debounce(long millisValue)
 {
-  if (beatLock)
-    return;
-  beatLock = true;
-
-#ifdef SHOW_BEAT_INFO
-  Serial.println("BEAT-----------------");
-#endif
-
-  if (startUpDone == false)
-    return;
-
-  // startup
   if (previousTime == 0)
   {
-#ifdef SHOW_BEAT_INFO
-    Serial.println("BEAT-------lock first time--");
-#endif
-
-    previousTime = millis();
+    // the first value is always valid
+    return true;
   }
   else
   {
-
-#ifdef SHOW_BEAT_INFO
-    Serial.println("BEAT-------lock next time--");
-#endif
-
-    currentTime = millis();
-    deltaTime = currentTime - previousTime;
-    previousTime = currentTime;
-    eventList.push_back(deltaTime);
+    if (millisValue > (previousTime + DEBOUNCE_SWITCH_MS))
+    {
+      return true;
+    }
   }
+  return false;
+}
+
+void interruptBeat()
+{
+  if (startUpDone == false)
+    return;
+
+  if (beatLock == true)
+    return;
+  beatLock = true;
+  currentTime = millis();
+
+  if (debounce(currentTime) == true)
+  {
+    if (previousTime == 0)
+    {
+      previousTime = currentTime;
+    }
+    else
+    {
+      deltaTime = currentTime - previousTime;
+
+      if (deltaTime > RESET_BEAT_AFTER_DELAY_TIME)
+      {
+        beatEventList.clear();
+        lastBeatQueLength = 0;
+        previousTime = 0;
+        currentTime = 0;
+#ifdef SHOW_BEAT_INFO
+        Serial.println("BEAT-------beat measure reset");
+#endif
+      }
+      else
+      {
+#ifdef SHOW_BEAT_INFO
+        Serial.println("BEAT-------locked");
+#endif
+        beatEventList.push_back((uint16_t)deltaTime);
+        Serial.print("DELTA: ");
+        Serial.println(deltaTime);
+      }
+      previousTime = currentTime;
+    }
+  }
+
   beatLock = false;
 }
 #endif
@@ -153,7 +183,7 @@ void OnStationaryBeatAnimation()
 {
 
 #ifdef SHOW_BEAT_INFO
-  Serial.println("BEAT-------FIRE-----");
+  // Serial.println("BEAT-------FIRE-----");
 #endif
 
   if (activeAnimationStationaryOne->IsBeatSupported())
@@ -282,50 +312,49 @@ void initPot()
 
 #ifdef BEAT_ANIMATION_SUPPORTED
 
+printList()
+{
+  Serial.print("LIST ->");
+  int length = beatEventList.length();
+  for (int i = 0; i < length; i++)
+  {
+    uint16_t value = beatEventList[i];
+    Serial.print(value);
+    Serial.print(" ");
+  }
+  Serial.println(" ");
+}
+
 void CalculateBeat()
 {
   now = millis();
 
-  if (deltaTime > RESET_BEAT_AFTER_DELAY_TIME)
+  int length = beatEventList.length();
+  if (length >= 3 && length != lastBeatQueLength)
   {
-    // RESET
-#ifdef SHOW_BEAT_INFO
-    Serial.println("BEAT-------RESET-----");
-#endif
-
-    eventList.clear();
-    averageBeatTime = 0;
+    printList();
+    Serial.println("BEAT-------CALCULATED-----");
     beatStartedAgo = 0;
-    lastBeatQueLength = 0;
-    previousTime = 0;
-    currentTime = 0;
-  }
-  else
-  {
-    int length = beatEventList.length();
-    if (length >= 3 && length != lastBeatQueLength)
+    averageBeatTime = 0;
+    lastBeatQueLength = length;
+
+    for (int i = 0; i < length; i++)
     {
-      lastBeatQueLength = length;
-      for (int i = 0; i < length; i++)
-      {
-        uint16_t delay = beatEventList.indexOf(i);
-        averageBeatTime = (averageBeatTime + delay) / 2;
-        beatStartedAgo += delay;
-      }
-      long beatStartTime = now - beatStartedAgo;
-      nextBeat = beatStartTime + (beatStartedAgo / averageBeatTime) + averageBeatTime;
-#ifdef SHOW_BEAT_INFO
-      Serial.println("BEAT-------CALCULATED-----");
-#endif
+      uint16_t delay = beatEventList[i];
+      averageBeatTime = (averageBeatTime + delay) / 2;
+      beatStartedAgo += delay;
     }
-    else
-    {
+    long beatStartTime = now - beatStartedAgo;
+    nextBeat = beatStartTime + (beatStartedAgo / averageBeatTime) + averageBeatTime;
+
 #ifdef SHOW_BEAT_INFO
-      // Serial.println("BEAT-------LIST TO SHORT-----");
+    Serial.println("BEAT-------CALCULATED-----");
+    Serial.print("Average:");
+    Serial.println(averageBeatTime);
 #endif
-    }
   }
 }
+
 #endif
 
 void UpdatePotPosition()
@@ -415,12 +444,17 @@ void UpdatePosition(struct ledData &data, uint16_t delta)
 
 void loop()
 {
-#ifdef AUTO_FIRE_BEAT
-  EVERY_N_MILLISECONDS(BEAT_SIMULATION_MS) // Advance pixels to next position.
-  {
-    OnStationaryBeatAnimation();
-  }
-#endif
+
+  // int sensorVal = digitalRead(BEAT_PIN);
+  // Serial.println("BEAT PIN: ");
+  // Serial.println(sensorVal);
+
+  // #ifdef AUTO_FIRE_BEAT
+  //   EVERY_N_MILLISECONDS(BEAT_SIMULATION_MS) // Advance pixels to next position.
+  //   {
+  //     OnStationaryBeatAnimation();
+  //   }
+  // #endif
 
   // slow updates here ...
   EVERY_N_MILLISECONDS(30000) // Advance pixels to next position.
@@ -493,6 +527,7 @@ void loop()
   if (!beatLock)
   {
     beatLock = true;
+
     CalculateBeat();
 
     if (now > nextBeat)
@@ -551,9 +586,12 @@ void initAnimations()
   ledFunctionsTwo[11] = new SinelonAnimation();
 
   ledFunctionsWhenStationaryTwo[0] = new JuggleAnimation();
-  //ledFunctionsWhenStationaryTwo[0] = new RotateAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 1, 20, 12, NUM_LEDS_TWO);
-  ledFunctionsWhenStationaryTwo[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
-  ledFunctionsWhenStationaryTwo[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
+  ledFunctionsWhenStationaryTwo[1] = new ApplauseAnimation();
+  ledFunctionsWhenStationaryTwo[2] = new LeftRightAnimation();
+
+  // ledFunctionsWhenStationaryTwo[0] = new RotateAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 1, 20, 12, NUM_LEDS_TWO);
+  //  ledFunctionsWhenStationaryTwo[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
+  //  ledFunctionsWhenStationaryTwo[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
   ledFunctionsWhenStationaryTwo[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 2, 10, 120, NUM_LEDS_TWO);
   ledFunctionsWhenStationaryTwo[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 5, 120, NUM_LEDS_TWO);
   ledFunctionsWhenStationaryTwo[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
@@ -578,7 +616,7 @@ void setup()
   numberOfPotPositions = 12;
 
 #ifndef AUTO_SELECT_ANIMATION
-  UpdatePotPosition();
+      UpdatePotPosition();
 #endif
 
   // sizeof(potPosition) / sizeof(potPositions[0]); //results in 0
@@ -605,9 +643,9 @@ void setup()
   // setup Interrupt
   attachInterrupt(digitalPinToInterrupt(HALL_PIN), interruptHall, FALLING);
 
-#ifdef BEAT_ANIMATION_SUPPORTED // setup Interrupt
-  attachInterrupt(digitalPinToInterrupt(BEAT_PIN), interruptBeat, FALLING);
-#endif
+  // #ifdef BEAT_ANIMATION_SUPPORTED // setup Interrupt
+  attachInterrupt(digitalPinToInterrupt(BEAT_PIN), interruptBeat, RISING);
+  // #endif
 
   Serial.println("1 -------------");
 

@@ -20,9 +20,9 @@ public:
         //alternative comment out to be red
         gHue = beatsin8(13, 0, data.noOfLeds - 1);
         
-        data.leds[data.pos] += CHSV(gHue, 255, 192);
+        //data.leds[data.pos] += CHSV(gHue, 255, 192);
         //alternating
-        //data.leds[pos] += CHSV(gHue, 255, 192);
+        data.leds[pos] += CHSV(gHue, 255, 192);
     };
     void OnSetup() {}
     String Name() { return "Sinelon"; }

@@ -13,8 +13,9 @@
 
 //BEAT
 #define BEAT_ANIMATION_SUPPORTED
-#define BEAT_PIN  5  // Beat Switch Pin used for interrupt
+#define BEAT_PIN  2  // Beat Switch Pin used for interrupt
 #define BEAT_SIMULATION_MS 1000
+#define DEBOUNCE_SWITCH_MS 50
 //#define AUTO_FIRE_BEAT
 
 #define RESET_BEAT_AFTER_DELAY_TIME  3000  // Reset the Beat detection after the user did not press the button for more than 3000
@@ -26,7 +27,7 @@
 
 
 #define COLOR_ORDER GRB
-#define DATA_PIN_ONE 2 // LED Signal Outer - Pin2 on the board.
+#define DATA_PIN_ONE 5 // LED Signal Outer - Pin2 on the board.
 //#define DATA_PIN_ONE 4 // LED Signal Outer - Pin2 on the board.
 #define DATA_PIN_TWO 4 // LED Signal Inner - Pin4 on the board.
 
@@ -74,6 +75,7 @@ public:
    virtual String Name() = 0;
    virtual bool IsBeatSupported(){return false;}
    virtual void OnBeat(struct ledData){};
+   virtual void Every20MilliSecond(struct ledData){};
 };
 
 #endif
