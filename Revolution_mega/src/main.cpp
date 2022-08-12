@@ -12,6 +12,7 @@
 #include <whiteDotRunning.hpp>
 #include <blueAndWhite.hpp>
 #include <juggle.hpp>
+#include <TaskScheduler.h>
 
 #include "QList.h"
 #include "defines.h"
@@ -23,6 +24,11 @@ CRGB ledsOne[NUM_LEDS_ONE]; // the led array representing the leds addressable b
 #ifdef LED_STRING_TWO_PRESENT
 CRGB ledsTwo[NUM_LEDS_TWO]; // the led array representing the leds addressable by FASTLED
 #endif
+
+// We create the Scheduler that will be in charge of managing the tasks
+Scheduler runner;
+
+bool beatTaskActive;
 
 uint8_t numberOfAnimations = 0;
 uint8_t numberOfPotPositions = 0;
@@ -183,7 +189,7 @@ void OnStationaryBeatAnimation()
 {
 
 #ifdef SHOW_BEAT_INFO
-  // Serial.println("BEAT-------FIRE-----");
+  Serial.println("BEAT-------FIRE-----");
 #endif
 
   if (activeAnimationStationaryOne->IsBeatSupported())
@@ -261,6 +267,9 @@ void ledCodeOnSetup()
 
 void showStartupAnimation()
 {
+
+#ifdef SHOW_STARTUP_ANIMATION
+
   ledsOne[0] = CRGB::Red;
 #ifdef LED_STRING_TWO_PRESENT
   ledsTwo[0] = CRGB::Red;
@@ -293,6 +302,7 @@ void showStartupAnimation()
   FastLED.show();
   delay(2000);
   FastLED.clear();
+#endif
 }
 
 void initPot()
@@ -325,7 +335,7 @@ printList()
   Serial.println(" ");
 }
 
-void CalculateBeat()
+bool CalculateBeat()
 {
   now = millis();
 
@@ -334,11 +344,11 @@ void CalculateBeat()
   {
     printList();
     Serial.println("BEAT-------CALCULATED-----");
-    beatStartedAgo = 0;
-    averageBeatTime = 0;
+    beatStartedAgo = beatEventList[0];
+    averageBeatTime = beatEventList[0];
     lastBeatQueLength = length;
 
-    for (int i = 0; i < length; i++)
+    for (int i = 1; i < length; i++)
     {
       uint16_t delay = beatEventList[i];
       averageBeatTime = (averageBeatTime + delay) / 2;
@@ -351,8 +361,17 @@ void CalculateBeat()
     Serial.println("BEAT-------CALCULATED-----");
     Serial.print("Average:");
     Serial.println(averageBeatTime);
+    Serial.print("Beat Start Time:");
+    Serial.println(beatStartTime);
+    Serial.print("Next Beat:");
+    Serial.println(nextBeat);
+    Serial.print("Beat Start ago:");
+    Serial.println(beatStartedAgo);
 #endif
+
+    return true;
   }
+  return false;
 }
 
 #endif
@@ -444,6 +463,7 @@ void UpdatePosition(struct ledData &data, uint16_t delta)
 
 void loop()
 {
+  runner.execute();
 
   // int sensorVal = digitalRead(BEAT_PIN);
   // Serial.println("BEAT PIN: ");
@@ -512,7 +532,7 @@ void loop()
 #ifdef LED_STRING_TWO_PRESENT
       UpdatePosition(ledDataTwo, deltaTwo);
 #endif
-      ledCodeOnHalEvent();
+      // ledCodeOnHalEvent();
       FastLED.show();
 
       // que makes sure that we dont miss interrupt events
@@ -528,13 +548,40 @@ void loop()
   {
     beatLock = true;
 
-    CalculateBeat();
-
-    if (now > nextBeat)
+    if (CalculateBeat())
     {
-      nextBeat = now + averageBeatTime;
-      OnStationaryBeatAnimation();
+      if (beatTaskActive)
+      {
+        Serial.println("Task is Active -> readjust-----------------------------------");
+        // runner.disableAll();
+        Task &currentTask = runner.currentTask();
+        currentTask.setInterval((long)averageBeatTime);
+        // runner.deleteTask(currentTask);
+        // beatTaskActive = false;
+      }
+      else
+      {
+        Serial.println("Task -> create new Task-------------------------------------");
+        Task beatTask((long)averageBeatTime, TASK_FOREVER, &OnStationaryBeatAnimation);
+        runner.addTask(beatTask);
+        beatTask.enable();
+        runner.startNow();
+        beatTaskActive = true;
+        Serial.println("Task Active-------------------------------------");
+      }
     }
+
+    // EVERY_N_MILLIS_I(thistimer, 100)
+    // {                                        // initial period = 100ms
+    //   thistimer.setPeriod(random8(10, 200)); // random period 10…200ms
+    //   …do whatever…
+    // }
+
+    // if (now > nextBeat)
+    // {
+    //   nextBeat = now + averageBeatTime;
+    //   OnStationaryBeatAnimation();
+    // }
     beatLock = false;
   }
 #endif
@@ -556,12 +603,13 @@ void initAnimations()
   ledFunctionsOne[11] = new SinelonAnimation();
 
   ledFunctionsWhenStationaryOne[0] = new HeartBeatAnimation();
-  ledFunctionsWhenStationaryOne[1] = new JuggleAnimation();
-  ledFunctionsWhenStationaryOne[2] = new BpmAnimation();
+  ledFunctionsWhenStationaryOne[1] = new LeftRightAnimation();
+  ledFunctionsWhenStationaryOne[2] = new JuggleAnimation();
+  ledFunctionsWhenStationaryOne[3] = new BpmAnimation();
 
   // ledFunctionsWhenStationaryOne[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
-  ledFunctionsWhenStationaryOne[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
-  ledFunctionsWhenStationaryOne[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
   ledFunctionsWhenStationaryOne[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
   ledFunctionsWhenStationaryOne[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
   ledFunctionsWhenStationaryOne[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
@@ -616,7 +664,7 @@ void setup()
   numberOfPotPositions = 12;
 
 #ifndef AUTO_SELECT_ANIMATION
-      UpdatePotPosition();
+  UpdatePotPosition();
 #endif
 
   // sizeof(potPosition) / sizeof(potPositions[0]); //results in 0

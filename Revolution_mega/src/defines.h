@@ -15,7 +15,7 @@
 #define BEAT_ANIMATION_SUPPORTED
 #define BEAT_PIN  2  // Beat Switch Pin used for interrupt
 #define BEAT_SIMULATION_MS 1000
-#define DEBOUNCE_SWITCH_MS 50
+#define DEBOUNCE_SWITCH_MS 250
 //#define AUTO_FIRE_BEAT
 
 #define RESET_BEAT_AFTER_DELAY_TIME  3000  // Reset the Beat detection after the user did not press the button for more than 3000
@@ -50,6 +50,7 @@
 //#define SHOW_POTENTIOMETER_INFO
 //#define SHOW_LOCK_AND_QUEUE_INFO
 #define SHOW_BEAT_INFO
+//#define SHOW_STARTUP_ANIMATION
 
 
 
