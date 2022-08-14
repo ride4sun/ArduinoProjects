@@ -8,13 +8,8 @@
 class ApplauseAnimation : public IAnimation
 {
 public:
-    HeartBeatAnimation() {}
-
-    void OnHallEvent(struct ledData data)  { }
-    void OnSetup() {}
-    
-
-    bool IsBeatSupported() { return true; }
+    ApplauseAnimation() {}
+    AnimationType Kind() { return AnimationType::OnHallEvent; }
     void OnBeat(struct ledData data){
 
         static uint16_t lastPixel = 0;

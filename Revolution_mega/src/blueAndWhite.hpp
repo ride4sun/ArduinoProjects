@@ -21,8 +21,9 @@ public:
         this->colorTwo = colorTwo;
     }
 
+    AnimationType Kind() { return AnimationType::OnHallEvent; }
+    
     void OnHallEvent(struct ledData data){
-
 
         for (uint16_t i = 0; i < data.noOfLeds; i = (i + spacing))
         {

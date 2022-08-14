@@ -11,7 +11,7 @@ class SinelonAnimation : public IAnimation
 
 public:
     SinelonAnimation() {}
-
+    AnimationType Kind() { return AnimationType::OnHallEvent; }
     void OnHallEvent(struct ledData data)  {
         // a colored dot sweeping back and forth, with fading trails
         fadeToBlackBy(data.leds, data.noOfLeds, 20);
@@ -24,7 +24,6 @@ public:
         //alternating
         data.leds[pos] += CHSV(gHue, 255, 192);
     };
-    void OnSetup() {}
     String Name() { return "Sinelon"; }
 };
 

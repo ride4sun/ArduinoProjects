@@ -13,12 +13,7 @@ class HeartBeatAnimation : public IAnimation
 
 public:
     HeartBeatAnimation() {}
-
-    void OnHallEvent(struct ledData data)  { }
-    void OnSetup() {}
-    
-
-    bool IsBeatSupported() { return true; }
+    AnimationType Kind() { return AnimationType::OnBeatEvent; }
     void OnBeat(struct ledData data){
         
         uint8_t beat = beatsin8(BeatsPerMinute, 64, 255);

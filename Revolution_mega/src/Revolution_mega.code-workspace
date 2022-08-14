@@ -1,0 +1,25 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"name": "Revelution_nano",
+			"path": "..\\..\\Revolution_Nano\\Revelution_nano"
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"*.cps": "javascript",
+			"iomanip": "cpp",
+			"ios": "cpp",
+			"String": "cpp",
+			"bitset": "cpp",
+			"deque": "cpp",
+			"sstream": "cpp",
+			"valarray": "cpp",
+			"char_traits": "cpp",
+			"complex": "cpp"
+		}
+	}
+}

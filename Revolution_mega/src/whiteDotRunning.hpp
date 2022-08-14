@@ -10,13 +10,11 @@ class WhiteDotRunningAnimation : public IAnimation
 
 public:
     WhiteDotRunningAnimation() {}
-
+    AnimationType Kind() { return AnimationType::OnHallEvent; }
     void OnHallEvent(struct ledData data){
         data.leds[data.lastPos] = CRGB::Black;
         data.leds[data.pos] = CRGB::White;
     };
-    void OnSetup() {}
-    void OnFastLoop() {}
     String Name() { return "WhiteDotRunning"; }
 };
 

@@ -12,6 +12,8 @@ class RainbowLedAnimation : public IAnimation
 
 public:
     RainbowLedAnimation() {}
+    String Name() { return "Rainbow"; }
+    AnimationType Kind() { return AnimationType::OnHallEvent; }
     void OnHallEvent(struct ledData data)
     {
         for (uint16_t i = 0; i < data.noOfLeds; ++i)
@@ -20,8 +22,6 @@ public:
         }
         rainbowHue += 20;
     };
-    void OnSetup() {}
     
-    String Name() { return "Rainbow"; }
 };
 #endif

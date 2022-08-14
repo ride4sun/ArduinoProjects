@@ -7,14 +7,14 @@
 
 class CandyCaneAnimation : public IAnimation
 {
-    uint8_t numColors = 2;    // Can be either 2 or 3
+    uint8_t numColors = 2;     // Can be either 2 or 3
     uint16_t stripeLength = 4; // number of pixels per color
-    CRGB color1 = CRGB::Blue;         // color used between color 2 (and 3 if used)
+    CRGB color1 = CRGB::Blue;  // color used between color 2 (and 3 if used)
     CRGB color2 = CRGB::Black;
 
 public:
     CandyCaneAnimation() {}
-
+    AnimationType Kind() { return AnimationType::OnHallEvent; }
     void OnHallEvent(struct ledData data)
     {
         for (uint16_t i = 0; i < data.noOfLeds; i++)
@@ -29,10 +29,7 @@ public:
             }
         }
     };
-    void OnSetup() {}
-    
     String Name() { return "CandyCane"; }
 };
-
 
 #endif

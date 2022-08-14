@@ -11,6 +11,7 @@ class JuggleAnimation : public IAnimation
 
 public:
     JuggleAnimation() {}
+    AnimationType Kind() { return AnimationType::OnStaticEvent; }
     void OnFastLoop(struct ledData data)
     {
         // eight colored dots, weaving in and out of sync with each other

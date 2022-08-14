@@ -44,6 +44,7 @@ public:
     }
 
 public:
+    AnimationType Kind() { return AnimationType::OnHallEvent; }
     void OnHallEvent(struct ledData data)
     {
         if (colorMode == OneColorFade || colorMode == TwoColorFade || colorMode == RainBowFade)

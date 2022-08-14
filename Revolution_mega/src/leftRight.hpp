@@ -9,27 +9,27 @@ class LeftRightAnimation : public IAnimation
 {
 public:
     LeftRightAnimation() {}
-
-    void OnHallEvent(struct ledData data) {}
-    void OnSetup() {}
     bool toggle = false;
-
-    bool IsBeatSupported() { return true; }
+    AnimationType Kind() { return AnimationType::OnBeatEvent; }
     void OnBeat(struct ledData data)
     {
-        fadeToBlackBy(data.leds, data.noOfLeds, data.noOfLeds);
+       fadeToBlackBy(data.leds, data.noOfLeds, 255);
+        uint16_t half = data.noOfLeds / 2;  
 
-        for (uint16_t i = 0; i < data.noOfLeds / 2; i++)
-        {
-            if (!toggle)
-                data.leds[i] = CRGB::Red;
-        }
-
-        for (uint16_t i = data.noOfLeds / 2; i < data.noOfLeds; i++)
+        for (uint16_t i = 0; i < half; i++)
         {
             if (toggle)
+            {
                 data.leds[i] = CRGB::Red;
+                data.leds[i+half] = CRGB::Black;
+            }
+            else
+            {
+                data.leds[i + half] = CRGB::Red;
+                data.leds[i] = CRGB::Black;
+            }
         }
+
         toggle = !toggle;
     };
     String Name() { return "LeftRight"; }

@@ -12,12 +12,8 @@ class BpmAnimation : public IAnimation
 
 public:
     BpmAnimation() {}
-    void OnHallEvent(struct ledData data) {}
-    void OnSetup() {}
-    void OnFastLoop() {}
     String Name() { return "BPM"; }
-
-    bool IsBeatSupported() { return true; }
+    AnimationType Kind() { return AnimationType::OnBeatEvent; }
     void OnBeat(struct ledData data)
     {
         // fadeToBlackBy(data.leds, data.noOfLeds, 150);

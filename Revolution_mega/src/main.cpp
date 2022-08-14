@@ -12,7 +12,11 @@
 #include <whiteDotRunning.hpp>
 #include <blueAndWhite.hpp>
 #include <juggle.hpp>
-#include <TaskScheduler.h>
+#include <SchedTask.h>
+#include <Gaussian.h>
+#include <LinkedList.h>
+
+// #include <TaskScheduler.h>
 
 #include "QList.h"
 #include "defines.h"
@@ -26,17 +30,22 @@ CRGB ledsTwo[NUM_LEDS_TWO]; // the led array representing the leds addressable b
 #endif
 
 // We create the Scheduler that will be in charge of managing the tasks
-Scheduler runner;
+// Scheduler runner;
 
-bool beatTaskActive;
+bool beatTaskActive = false;
 
 uint8_t numberOfAnimations = 0;
 uint8_t numberOfPotPositions = 0;
+uint8_t potPosition = 0;
 
 IAnimation *activeAnimationOne;
 IAnimation *activeAnimationTwo;
-IAnimation *activeAnimationStationaryOne;
-IAnimation *activeAnimationStationaryTwo;
+
+void OnAnimationEvent();
+
+// setup task but make sure the event is not happening
+// the time setup will be updated later to the beat
+SchedTask beatTask(0, DEFAULT_SLOW_BEAT, OnAnimationEvent);
 
 class PotPosLimits
 {
@@ -54,10 +63,8 @@ public:
 
 PotPosLimits potPositions[12];
 IAnimation *ledFunctionsOne[12];
-IAnimation *ledFunctionsWhenStationaryOne[12];
 
 #ifdef LED_STRING_TWO_PRESENT
-IAnimation *ledFunctionsWhenStationaryTwo[12];
 IAnimation *ledFunctionsTwo[12];
 #endif
 
@@ -75,29 +82,35 @@ struct ledData ledDataTwo;
 
 bool reverse = false; // the direction of the hall event
 
+#ifdef HALL_SUPPORTED
 QList<bool> eventList; // has all interrupt events
 bool lock = false;
-byte potPin = A0;
-uint16_t potVal = analogRead(A0);
 bool hallSensorActive = true;
 bool simulateHallSensorEvents = true;
 
-#ifdef BEAT_ANIMATION_SUPPORTED
+#endif
 
+// potentiometer values
+byte potPin = A0;
+uint16_t potVal = analogRead(A0);
+
+// beat detection
 bool beatLock = false;
+bool disableBeatOnce = false;
 long deltaTime = 0;
 long nextBeat = 0;
 uint16_t averageBeatTime;
 uint16_t beatStartedAgo;
 long now = 0;
-QList<uint16_t> beatEventList; // has all interrupt events
+LinkedList<uint16_t> beatEventList = LinkedList<uint16_t>();
+// has all interrupt events
 int lastBeatQueLength = 0;
 
 long previousTime = 0;
 long currentTime = 0;
 
 // returns true if the pin read was valid
-bool debounce(long millisValue)
+bool debounce(long currentTime, long previousTime)
 {
   if (previousTime == 0)
   {
@@ -106,25 +119,32 @@ bool debounce(long millisValue)
   }
   else
   {
-    if (millisValue > (previousTime + DEBOUNCE_SWITCH_MS))
+    if ((currentTime > (previousTime + DEBOUNCE_SWITCH_MIN_MS)))
     {
+      // if (currentTime < (previousTime + DEBOUNCE_SWITCH_MAX_MS))
       return true;
+      // else
+      //   return false;
     }
+    else
+      return false;
   }
-  return false;
 }
 
 void interruptBeat()
 {
-  if (startUpDone == false)
-    return;
+  // Serial.println("BEAT--------------------------BEAT");
+  // if (startUpDone == false)
+  //   return;
 
-  if (beatLock == true)
-    return;
-  beatLock = true;
+  // if (beatLock == true)
+  //   return;
+  // beatLock = true;
   currentTime = millis();
 
-  if (debounce(currentTime) == true)
+  // Serial.println("BEAT--------------------------BEAT2");
+
+  if (debounce(currentTime, previousTime) == true)
   {
     if (previousTime == 0)
     {
@@ -146,20 +166,21 @@ void interruptBeat()
       }
       else
       {
-#ifdef SHOW_BEAT_INFO
-        Serial.println("BEAT-------locked");
-#endif
-        beatEventList.push_back((uint16_t)deltaTime);
+        beatEventList.add((uint16_t)deltaTime);
         Serial.print("DELTA: ");
         Serial.println(deltaTime);
+#ifdef SHOW_BEAT_INFO
+        Serial.println("BEAT-------added");
+#endif
       }
       previousTime = currentTime;
     }
   }
 
-  beatLock = false;
+  // beatLock = false;
 }
-#endif
+
+#ifdef HALL_SUPPORTED
 
 void interruptHall()
 {
@@ -177,90 +198,76 @@ void interruptHall()
   Serial.println(lock ? "true" : "false");
 #endif
 }
+
 void interruptHallSimulated()
 {
   eventList.push_back(true);
 }
+#endif
 
-uint8_t potPosition = 0;
-
-#ifdef BEAT_ANIMATION_SUPPORTED
-void OnStationaryBeatAnimation()
+void OnAnimationEvent()
 {
-
-#ifdef SHOW_BEAT_INFO
-  Serial.println("BEAT-------FIRE-----");
-#endif
-
-  if (activeAnimationStationaryOne->IsBeatSupported())
+  switch (activeAnimationOne->Kind())
   {
-    activeAnimationStationaryOne->OnBeat(ledDataOne);
+  case AnimationType::OnHallEvent:
+    // Serial.print("On Hall Event ");
+    // Serial.println(activeAnimationOne->Name());
+    activeAnimationOne->OnHall(ledDataOne);
+    break;
+  case AnimationType::OnBeatEvent:
+    // Serial.print("On Beat Event ");
+    // Serial.println(activeAnimationOne->Name());
+    activeAnimationOne->OnBeat(ledDataOne);
+    break;
+  case AnimationType::OnStaticEvent:
+    // Serial.print("On Static Event ");
+    // Serial.println(activeAnimationOne->Name());
+    activeAnimationOne->OnStatic(ledDataOne);
+    break;
+  default:
+    Serial.println("Unsupported Type of Animation detected !!!!!");
   }
 
 #ifdef LED_STRING_TWO_PRESENT
-
-  if (activeAnimationStationaryTwo->IsBeatSupported())
+  switch (activeAnimationTwo->Kind())
   {
-    activeAnimationStationaryTwo->OnBeat(ledDataOne);
+  case AnimationType::OnHallEvent:
+    activeAnimationTwo->OnHall(ledDataTwo);
+    break;
+  case AnimationType::OnBeatEvent:
+    activeAnimationTwo->OnBeat(ledDataTwo);
+    break;
+  case AnimationType::OnStaticEvent:
+    activeAnimationTwo->OnBeat(ledDataTwo);
+    break;
+    // default:
   }
 #endif
-}
-#endif
 
-void ledCodeOnHalEvent()
-{
-  if (simulateHallSensorEvents)
-  {
-    if (activeAnimationStationaryOne->IsBeatSupported())
-      activeAnimationStationaryOne->OnBeat(ledDataOne);
-    else
-      activeAnimationStationaryOne->OnHallEvent(ledDataOne);
-
-#ifdef LED_STRING_TWO_PRESENT
-    if (activeAnimationStationaryTwo->IsBeatSupported())
-      activeAnimationStationaryTwo->OnBeat(ledDataTwo);
-    else
-      activeAnimationStationaryTwo->OnHallEvent(ledDataTwo);
-#endif
-  }
-  else
-  {
-    if (activeAnimationOne->IsBeatSupported())
-      activeAnimationOne->OnBeat(ledDataOne);
-    else
-      activeAnimationOne->OnHallEvent(ledDataOne);
-
-#ifdef LED_STRING_TWO_PRESENT
-    if (activeAnimationTwo->IsBeatSupported())
-      activeAnimationTwo->OnBeat(ledDataTwo);
-    else
-      activeAnimationTwo->OnHallEvent(ledDataTwo);
-#endif
-  }
+  FastLED.show();
+  // Serial.println("FastLED.show() call");
 }
 
-void ledCodeOnLoop()
-{
-  activeAnimationOne->OnFastLoop(ledDataOne);
+// void ledCodeOnLoop()
+// {
+//   activeAnimationOne->OnFastLoop(ledDataOne);
 
-#ifdef LED_STRING_TWO_PRESENT
-  activeAnimationTwo->OnFastLoop(ledDataTwo);
-#endif
-}
+// #ifdef LED_STRING_TWO_PRESENT
+//   activeAnimationTwo->OnFastLoop(ledDataTwo);
+// #endif
+// }
 
 void ledCodeOnSetup()
 {
   for (int i; i < numberOfAnimations; i++)
   {
     ledFunctionsOne[i]->OnSetup();
-    ledFunctionsWhenStationaryOne[i]->OnSetup();
   }
 
 #ifdef LED_STRING_TWO_PRESENT
   for (int i; i < numberOfAnimations; i++)
   {
     ledFunctionsTwo[i]->OnSetup();
-    ledFunctionsWhenStationaryTwo[i]->OnSetup();
   }
 #endif
 }
@@ -304,7 +311,7 @@ void showStartupAnimation()
   FastLED.clear();
 #endif
 }
-
+#ifdef POT_SUPPORTED
 void initPot()
 {
   potPositions[0] = PotPosLimits(0, 50);
@@ -318,14 +325,15 @@ void initPot()
   potPositions[8] = PotPosLimits(701, 800);
   potPositions[9] = PotPosLimits(801, 900);
   potPositions[11] = PotPosLimits(901, 1200);
+
+  Serial.println("Init Potentiometer-------------------------");
 }
-
-#ifdef BEAT_ANIMATION_SUPPORTED
-
-printList()
+#endif
+#ifdef SHOW_BEAT_INFO
+void printList()
 {
   Serial.print("LIST ->");
-  int length = beatEventList.length();
+  int length = beatEventList.size();
   for (int i = 0; i < length; i++)
   {
     uint16_t value = beatEventList[i];
@@ -334,26 +342,34 @@ printList()
   }
   Serial.println(" ");
 }
+#endif
 
-bool CalculateBeat()
+BeatCalculationResult CalculateBeat()
 {
   now = millis();
 
-  int length = beatEventList.length();
-  if (length >= 3 && length != lastBeatQueLength)
+  int length = beatEventList.size();
+  if (length >= MIN_NO_OF_BEATS && length != lastBeatQueLength)
   {
+#ifdef SHOW_BEAT_INFO
     printList();
+#endif
     Serial.println("BEAT-------CALCULATED-----");
     beatStartedAgo = beatEventList[0];
     averageBeatTime = beatEventList[0];
     lastBeatQueLength = length;
+    // GaussianAverage average = GaussianAverage();
 
     for (int i = 1; i < length; i++)
     {
       uint16_t delay = beatEventList[i];
+      if (delay > DEBOUNCE_SWITCH_MAX_MS)
+        continue;
       averageBeatTime = (averageBeatTime + delay) / 2;
       beatStartedAgo += delay;
     }
+    // Gaussian mean = average.process();
+
     long beatStartTime = now - beatStartedAgo;
     nextBeat = beatStartTime + (beatStartedAgo / averageBeatTime) + averageBeatTime;
 
@@ -368,14 +384,34 @@ bool CalculateBeat()
     Serial.print("Beat Start ago:");
     Serial.println(beatStartedAgo);
 #endif
-
-    return true;
+    return BeatCalculationResult::NewResult;
   }
-  return false;
+  else
+  {
+    if (length == lastBeatQueLength && length >= MIN_NO_OF_BEATS)
+    {
+      // Serial.println("Same result still valid in beat calculation!");
+      return BeatCalculationResult::SameResultStillValid;
+    }
+    else
+    {
+      // Serial.println("Not valid result in beat calculation!");
+      return BeatCalculationResult::NotValidResult;
+    }
+  }
 }
 
+#ifndef POT_SUPPORTED
+void SelectFunction(uint8_t i)
+{
+  activeAnimationOne = ledFunctionsOne[i];
+#ifdef LED_STRING_TWO_PRESENT
+  activeAnimationTwo = ledFunctionsTwo[i];
+#endif
+}
 #endif
 
+#ifdef POT_SUPPORTED
 void UpdatePotPosition()
 {
   PotPosLimits limits;
@@ -396,11 +432,8 @@ void UpdatePotPosition()
   }
 
   activeAnimationOne = ledFunctionsOne[potPosition];
-  activeAnimationStationaryOne = ledFunctionsWhenStationaryOne[potPosition];
-
 #ifdef LED_STRING_TWO_PRESENT
   activeAnimationTwo = ledFunctionsTwo[potPosition];
-  activeAnimationStationaryTwo = ledFunctionsWhenStationaryTwo[potPosition];
 #endif
 
 #ifdef SHOW_POTENTIOMETER_INFO
@@ -418,6 +451,7 @@ void UpdatePotPosition()
 
 #endif
 }
+#endif
 void UpdatePosition(struct ledData &data, uint16_t delta)
 {
 #ifdef SHOW_POSITION_PRINT_INFO
@@ -461,13 +495,41 @@ void UpdatePosition(struct ledData &data, uint16_t delta)
 #endif
 }
 
+void loopBeatHandling()
+{
+  if (!beatLock)
+  {
+    beatLock = true;
+
+    switch (CalculateBeat())
+    {
+    case BeatCalculationResult::NewResult:
+      Serial.println("Set Beat to new Time---------------------------");
+      beatTask.setPeriod(averageBeatTime);
+      beatTaskActive = true;
+      break;
+    case BeatCalculationResult::SameResultStillValid:
+      // do nothing - Beat is active
+      break;
+    case BeatCalculationResult::NotValidResult:
+      if (beatTaskActive)
+      {
+        Serial.println("Stop Beat Animation ---------------------------");
+         beatTask.setPeriod(DEFAULT_SLOW_BEAT);
+        beatTaskActive = false;
+      }
+      break;
+    default:
+      Serial.println("Unsupported Type of Beat Calculation detected !!!!!");
+    }
+  }
+  beatLock = false;
+}
+
 void loop()
 {
-  runner.execute();
-
-  // int sensorVal = digitalRead(BEAT_PIN);
-  // Serial.println("BEAT PIN: ");
-  // Serial.println(sensorVal);
+  // runner.execute();
+  SchedBase::dispatcher();
 
   // #ifdef AUTO_FIRE_BEAT
   //   EVERY_N_MILLISECONDS(BEAT_SIMULATION_MS) // Advance pixels to next position.
@@ -489,13 +551,14 @@ void loop()
   }
 
   // no need to read the Potentiometer often
+#ifdef POT_SUPPORTED
   EVERY_N_MILLISECONDS(1000)
   {
-#ifndef AUTO_SELECT_ANIMATION
     UpdatePotPosition();
-#endif
   }
+#endif
 
+#ifdef HALL_SUPPORTED
   EVERY_N_MILLISECONDS(5000)
   {
     if (hallSensorActive == true)
@@ -508,7 +571,9 @@ void loop()
       simulateHallSensorEvents = true;
     }
   }
+#endif
 
+#ifdef HALL_SUPPORTED
   EVERY_N_MILLISECONDS(SIMULATED_INTERRUPT_TIME) // Advance pixels to next position.
   {
 #ifdef SIMULATED_INTERRUPT
@@ -516,24 +581,24 @@ void loop()
       interruptHallSimulated();
 #endif
   }
+#endif
 
+#ifdef HALL_SUPPORTED
   if (lock == false)
   {
-
     // lock is making sure that the led routine gets not entered when it
     // is already running (avoid crash and reentrance)
     lock = true;
 
-    ledCodeOnLoop();
-
     if (eventList.length() != 0)
     {
       UpdatePosition(ledDataOne, deltaOne);
+
 #ifdef LED_STRING_TWO_PRESENT
       UpdatePosition(ledDataTwo, deltaTwo);
 #endif
-      // ledCodeOnHalEvent();
-      FastLED.show();
+
+      OnAnimationEvent();
 
       // que makes sure that we dont miss interrupt events
       eventList.pop_back();
@@ -542,82 +607,27 @@ void loop()
     }
     lock = false;
   }
-
-#ifdef BEAT_ANIMATION_SUPPORTED
-  if (!beatLock)
-  {
-    beatLock = true;
-
-    if (CalculateBeat())
-    {
-      if (beatTaskActive)
-      {
-        Serial.println("Task is Active -> readjust-----------------------------------");
-        // runner.disableAll();
-        Task &currentTask = runner.currentTask();
-        currentTask.setInterval((long)averageBeatTime);
-        // runner.deleteTask(currentTask);
-        // beatTaskActive = false;
-      }
-      else
-      {
-        Serial.println("Task -> create new Task-------------------------------------");
-        Task beatTask((long)averageBeatTime, TASK_FOREVER, &OnStationaryBeatAnimation);
-        runner.addTask(beatTask);
-        beatTask.enable();
-        runner.startNow();
-        beatTaskActive = true;
-        Serial.println("Task Active-------------------------------------");
-      }
-    }
-
-    // EVERY_N_MILLIS_I(thistimer, 100)
-    // {                                        // initial period = 100ms
-    //   thistimer.setPeriod(random8(10, 200)); // random period 10…200ms
-    //   …do whatever…
-    // }
-
-    // if (now > nextBeat)
-    // {
-    //   nextBeat = now + averageBeatTime;
-    //   OnStationaryBeatAnimation();
-    // }
-    beatLock = false;
-  }
 #endif
+
+  loopBeatHandling();
 }
 
 void initAnimations()
 {
+  Serial.println("Init Animations---------------------------");
+#ifdef HALL_SUPPORTED
   ledFunctionsOne[0] = new RotateAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 2, 40, 12, NUM_LEDS_ONE);
   ledFunctionsOne[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 2, 40, 120, NUM_LEDS_ONE);
   ledFunctionsOne[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 2, 40, 120, NUM_LEDS_ONE);
   ledFunctionsOne[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
   ledFunctionsOne[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[9] = new RainbowLedAnimation();
-  ledFunctionsOne[10] = new JuggleAnimation();
+  ledFunctionsOne[5] = new LeftRightAnimation();
+  ledFunctionsOne[6] = new HeartBeatAnimation();
+  ledFunctionsOne[7] = new BpmAnimation();
+  ledFunctionsOne[8] = new RainbowLedAnimation();
+  ledFunctionsOne[9] = new JuggleAnimation();
+  ledFunctionsOne[10] = new SinelonAnimation();
   ledFunctionsOne[11] = new SinelonAnimation();
-
-  ledFunctionsWhenStationaryOne[0] = new HeartBeatAnimation();
-  ledFunctionsWhenStationaryOne[1] = new LeftRightAnimation();
-  ledFunctionsWhenStationaryOne[2] = new JuggleAnimation();
-  ledFunctionsWhenStationaryOne[3] = new BpmAnimation();
-
-  // ledFunctionsWhenStationaryOne[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
-  ledFunctionsWhenStationaryOne[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
-  ledFunctionsWhenStationaryOne[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  ledFunctionsWhenStationaryOne[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  ledFunctionsWhenStationaryOne[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  ledFunctionsWhenStationaryOne[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  ledFunctionsWhenStationaryOne[9] = new RainbowLedAnimation();
-  ledFunctionsWhenStationaryOne[10] = new JuggleAnimation();
-  ledFunctionsWhenStationaryOne[11] = new SinelonAnimation();
 
 #ifdef LED_STRING_TWO_PRESENT
   ledFunctionsTwo[0] = new RotateAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 1, 20, 12, NUM_LEDS_TWO);
@@ -625,46 +635,123 @@ void initAnimations()
   ledFunctionsTwo[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
   ledFunctionsTwo[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 2, 10, 120, NUM_LEDS_TWO);
   ledFunctionsTwo[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 5, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[9] = new RainbowLedAnimation();
-  ledFunctionsTwo[10] = new JuggleAnimation();
+  ledFunctionsTwo[5] = new LeftRightAnimation();
+  ledFunctionsTwo[6] = new HeartBeatAnimation();
+  ledFunctionsTwo[7] = new BpmAnimation();
+  ledFunctionsTwo[8] = new RainbowLedAnimation();
+  ledFunctionsTwo[9] = new JuggleAnimation();
+  ledFunctionsTwo[10] = new SinelonAnimation();
   ledFunctionsTwo[11] = new SinelonAnimation();
+#endif
+#endif
 
-  ledFunctionsWhenStationaryTwo[0] = new JuggleAnimation();
-  ledFunctionsWhenStationaryTwo[1] = new ApplauseAnimation();
-  ledFunctionsWhenStationaryTwo[2] = new LeftRightAnimation();
+#ifdef JACKET
+  ledFunctionsOne[0] = new LeftRightAnimation();
+  ledFunctionsOne[1] = new HeartBeatAnimation();
+  ledFunctionsOne[2] = new BpmAnimation();
+  ledFunctionsOne[3] = new LeftRightAnimation();
+  ledFunctionsOne[4] = new LeftRightAnimation();
+  ledFunctionsOne[5] = new LeftRightAnimation();
+  ledFunctionsOne[6] = new LeftRightAnimation();
+  ledFunctionsOne[7] = new JuggleAnimation();
+  ledFunctionsOne[8] = new SinelonAnimation();
+  ledFunctionsOne[9] = new SinelonAnimation();
+  ledFunctionsOne[10] = new SinelonAnimation();
+  ledFunctionsOne[11] = new SinelonAnimation();
+#endif
 
+  // ledFunctionsOne[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsOne[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsOne[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsOne[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+
+  // ledFunctionsWhenStationaryOne[0] = new HeartBeatAnimation();
+  // ledFunctionsWhenStationaryOne[1] = new LeftRightAnimation();
+  // ledFunctionsWhenStationaryOne[2] = new JuggleAnimation();
+  // ledFunctionsWhenStationaryOne[3] = new BpmAnimation();
+
+  // ledFunctionsWhenStationaryOne[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[9] = new RainbowLedAnimation();
+  // ledFunctionsWhenStationaryOne[10] = new JuggleAnimation();
+  // ledFunctionsWhenStationaryOne[11] = new SinelonAnimation();
+
+  // ledFunctionsTwo[10] = new JuggleAnimation();
+  // ledFunctionsTwo[11] = new SinelonAnimation();
+  // ledFunctionsWhenStationaryTwo[0] = new JuggleAnimation();
+  // ledFunctionsWhenStationaryTwo[1] = new ApplauseAnimation();
+  // ledFunctionsWhenStationaryTwo[2] = new LeftRightAnimation();
+  // ledFunctionsTwo[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsTwo[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsTwo[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsTwo[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsTwo[9] = new RainbowLedAnimation();
   // ledFunctionsWhenStationaryTwo[0] = new RotateAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 1, 20, 12, NUM_LEDS_TWO);
   //  ledFunctionsWhenStationaryTwo[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
   //  ledFunctionsWhenStationaryTwo[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
-  ledFunctionsWhenStationaryTwo[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 2, 10, 120, NUM_LEDS_TWO);
-  ledFunctionsWhenStationaryTwo[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 5, 120, NUM_LEDS_TWO);
-  ledFunctionsWhenStationaryTwo[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  ledFunctionsWhenStationaryTwo[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  ledFunctionsWhenStationaryTwo[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  ledFunctionsWhenStationaryTwo[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  ledFunctionsWhenStationaryTwo[9] = new RainbowLedAnimation();
-  ledFunctionsWhenStationaryTwo[10] = new JuggleAnimation();
-  ledFunctionsWhenStationaryTwo[11] = new SinelonAnimation();
-#endif
+
+  // ledFunctionsWhenStationaryTwo[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 2, 10, 120, NUM_LEDS_TWO);
+  // ledFunctionsWhenStationaryTwo[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 5, 120, NUM_LEDS_TWO);
+  // ledFunctionsWhenStationaryTwo[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsWhenStationaryTwo[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsWhenStationaryTwo[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsWhenStationaryTwo[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsWhenStationaryTwo[9] = new RainbowLedAnimation();
+  // ledFunctionsWhenStationaryTwo[10] = new JuggleAnimation();
+  // ledFunctionsWhenStationaryTwo[11] = new SinelonAnimation();
 }
 
 void setup()
 {
+  Serial.begin(115200);
+  Serial.println("Setup start --------------------------------------");
 
   initAnimations();
 
+#ifdef POT_SUPPORTED
   initPot();
+#endif
 
   // numberOfAnimations = sizeof(ledFunctionsOne) / sizeof(ledFunctionsOne[0]);
   numberOfAnimations = 12;
   numberOfPotPositions = 12;
 
-#ifndef AUTO_SELECT_ANIMATION
+#ifdef POT_SUPPORTED
   UpdatePotPosition();
+#else
+  SelectFunction(0);
+#endif
+
+  Serial.print("Number of Pot Positions:");
+  Serial.println(numberOfPotPositions);
+  Serial.print("Number of Animations:");
+  Serial.println(numberOfAnimations);
+
+#ifdef LED_STRING_TWO_PRESENT
+  Serial.println("LED STRING TWO IS PRESENT");
+#else
+  Serial.println("LED STRING TWO IS NOT PRESENT");
+#endif
+#ifdef HALL_SUPPORTED
+  Serial.println("HALL IS SUPPORTED");
+#else
+  Serial.println("HALL IS NOT SUPPORTED");
+#endif
+#ifdef JACKET
+  Serial.println("JACKET IS SUPPORTED");
+#else
+  Serial.println("JACKET IS NOT SUPPORTED");
+#endif
+#ifdef POT_SUPPORTED
+  Serial.println("POTENTIOMETER IS SUPPORTED");
+#else
+  Serial.println("POTENTIOMETER IS NOT SUPPORTED");
 #endif
 
   // sizeof(potPosition) / sizeof(potPositions[0]); //results in 0
@@ -674,30 +761,23 @@ void setup()
   ledDataTwo = {ledsTwo, 0, 0, NUM_LEDS_TWO};
 #endif
 
-  Serial.begin(115200);
-  Serial.println("Setup start --------------------------------------");
-  Serial.print("Number of Pot Positions:");
-  Serial.println(numberOfPotPositions);
-  Serial.print("Number of Animations:");
-  Serial.println(numberOfAnimations);
-
   FastLED.clear();
   delay(1600); // Startup delay
 
+  // pinMode(LED_BUILTIN, OUTPUT);
+
+#ifdef HALL_SUPPORTED
   pinMode(HALL_PIN, INPUT_PULLUP);
-  pinMode(BEAT_PIN, INPUT_PULLUP);
-  pinMode(LED_BUILTIN, OUTPUT);
-
-  // setup Interrupt
   attachInterrupt(digitalPinToInterrupt(HALL_PIN), interruptHall, FALLING);
+#endif
 
-  // #ifdef BEAT_ANIMATION_SUPPORTED // setup Interrupt
+  pinMode(BEAT_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(BEAT_PIN), interruptBeat, RISING);
-  // #endif
 
   Serial.println("1 -------------");
 
   FastLED.addLeds<LED_TYPE, DATA_PIN_ONE, GRB>(ledsOne, NUM_LEDS_ONE);
+
 #ifdef LED_STRING_TWO_PRESENT
   FastLED.addLeds<LED_TYPE, DATA_PIN_TWO, GRB>(ledsTwo, NUM_LEDS_TWO);
 #endif
