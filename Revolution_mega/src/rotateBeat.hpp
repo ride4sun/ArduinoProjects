@@ -1,12 +1,11 @@
-#ifndef ROTATE_HPP
-#define ROTATE_HPP
+#ifndef ROTATE_BEAT_HPP
+#define ROTATE_BEAT_HPP
 
 #include <Arduino.h>
 #include <FastLED.h>
 #include "defines.h"
 
-
-class RotateAnimation : public IAnimation
+class RotateBeatAnimation : public IAnimation
 {
     uint16_t noOfSpots;
     uint16_t spotLength;
@@ -19,9 +18,10 @@ class RotateAnimation : public IAnimation
     bool toggleColor = false;
     ColorMode colorMode;
     bool colorToggle;
+    uint8_t posIncrement;
 
 public:
-    RotateAnimation(ColorMode colorMode, CRGB colorOne, CRGB colorTwo, uint16_t noOfSpots, uint16_t spotLength, uint8_t fadeRatio, uint16_t numberOfLeds)
+    RotateBeatAnimation(ColorMode colorMode, CRGB colorOne, CRGB colorTwo, uint16_t noOfSpots, uint16_t spotLength, uint8_t fadeRatio, uint16_t numberOfLeds)
     {
         this->noOfSpots = noOfSpots;
         this->spotLength = spotLength;
@@ -31,12 +31,19 @@ public:
         this->numberOfLeds = numberOfLeds;
         this->toggleColor = toggleColor;
         this->colorMode = colorMode;
+        this->posIncrement = posIncrement;
         colorToggle = colorMode == TwoColorFade || colorMode == TwoColor;
     }
 
+    uint8_t pos=0;
+
 public:
-    AnimationType Kind() { return AnimationType::OnHallEvent; }
-    void OnHallEvent(struct ledData data)
+    AnimationType Kind()
+    {
+        return AnimationType::OnBeatEvent;
+    }
+
+    void OnBeatEvent(struct ledData data)
     {
         if (colorMode == OneColorFade || colorMode == TwoColorFade || colorMode == RainBowFade)
             fadeToBlackBy(data.leds, data.noOfLeds, fadeRatio);
@@ -59,14 +66,18 @@ public:
 
                 if (colorMode == RainBow || colorMode == RainBowFade)
                 {
-                    data.leds[correctedPos] = CHSV(rainbowHue, 255, 255);
+                    // data.leds[correctedPos] = CHSV(rainbowHue, 255, 255);
+                    data.leds[correctedPos] = CRGB::Red;
+                    
                 }
                 else
                 {
                     if (toggleColor)
-                        data.leds[correctedPos] = colorTwo;
+                        data.leds[correctedPos] = CRGB::Red;
+                        // data.leds[correctedPos] = colorTwo;
                     else
-                        data.leds[correctedPos] = colorOne;
+                        data.leds[correctedPos] = CRGB::Red;
+                        // data.leds[correctedPos] = colorOne;
                 }
             }
             rainbowHue += 2;
@@ -100,7 +111,7 @@ public:
         Serial.println("----------Rotate setup end----------------");
     }
     
-    String Name() { return "Rotate"; }
+    String Name() { return "RotateBeat"; }
 };
 
 #endif

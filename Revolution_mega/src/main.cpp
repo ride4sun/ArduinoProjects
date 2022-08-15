@@ -1,9 +1,11 @@
 #include <Arduino.h>
 #include <rotate.hpp>
+#include <rotateBeat.hpp>
 #include <leftRight.hpp>
 #include <applause.hpp>
 #include <heartBeat.hpp>
 #include <sinelon.hpp>
+#include <sinelonBeat.hpp>
 #include <bpm.hpp>
 #include <candyCane.hpp>
 #include <rainbow2.hpp>
@@ -12,6 +14,7 @@
 #include <whiteDotRunning.hpp>
 #include <blueAndWhite.hpp>
 #include <juggle.hpp>
+#include <juggleBeat.hpp>
 #include <SchedTask.h>
 #include <Gaussian.h>
 #include <LinkedList.h>
@@ -41,11 +44,11 @@ uint8_t potPosition = 0;
 IAnimation *activeAnimationOne;
 IAnimation *activeAnimationTwo;
 
-void OnAnimationEvent();
+void BeatEvent();
 
 // setup task but make sure the event is not happening
 // the time setup will be updated later to the beat
-SchedTask beatTask(0, DEFAULT_SLOW_BEAT, OnAnimationEvent);
+SchedTask beatTask(0, DEFAULT_SLOW_BEAT, BeatEvent);
 
 class PotPosLimits
 {
@@ -68,11 +71,6 @@ IAnimation *ledFunctionsOne[12];
 IAnimation *ledFunctionsTwo[12];
 #endif
 
-uint16_t deltaOne = 1; // Sets forward or backwards direction amount. (Can be negative.) (delta = 1 WORKS)
-#ifdef LED_STRING_TWO_PRESENT
-uint16_t deltaTwo = 1; // Sets forward or backwards direction amount. (Can be negative.) (delta = 1 WORKS)
-#endif
-
 bool startUpDone = false;
 
 struct ledData ledDataOne;
@@ -87,7 +85,6 @@ QList<bool> eventList; // has all interrupt events
 bool lock = false;
 bool hallSensorActive = true;
 bool simulateHallSensorEvents = true;
-
 #endif
 
 // potentiometer values
@@ -133,16 +130,13 @@ bool debounce(long currentTime, long previousTime)
 
 void interruptBeat()
 {
-  // Serial.println("BEAT--------------------------BEAT");
-  // if (startUpDone == false)
-  //   return;
+  if (startUpDone == false)
+    return;
 
-  // if (beatLock == true)
-  //   return;
-  // beatLock = true;
+  if (beatLock == true)
+    return;
+  beatLock = true;
   currentTime = millis();
-
-  // Serial.println("BEAT--------------------------BEAT2");
 
   if (debounce(currentTime, previousTime) == true)
   {
@@ -167,10 +161,9 @@ void interruptBeat()
       else
       {
         beatEventList.add((uint16_t)deltaTime);
+#ifdef SHOW_BEAT_INFO
         Serial.print("DELTA: ");
         Serial.println(deltaTime);
-#ifdef SHOW_BEAT_INFO
-        Serial.println("BEAT-------added");
 #endif
       }
       previousTime = currentTime;
@@ -202,60 +195,18 @@ void interruptHall()
 void interruptHallSimulated()
 {
   eventList.push_back(true);
+  OnAnimationEvent();
 }
 #endif
 
-void OnAnimationEvent()
+void ledCodeOnLoop()
 {
-  switch (activeAnimationOne->Kind())
-  {
-  case AnimationType::OnHallEvent:
-    // Serial.print("On Hall Event ");
-    // Serial.println(activeAnimationOne->Name());
-    activeAnimationOne->OnHall(ledDataOne);
-    break;
-  case AnimationType::OnBeatEvent:
-    // Serial.print("On Beat Event ");
-    // Serial.println(activeAnimationOne->Name());
-    activeAnimationOne->OnBeat(ledDataOne);
-    break;
-  case AnimationType::OnStaticEvent:
-    // Serial.print("On Static Event ");
-    // Serial.println(activeAnimationOne->Name());
-    activeAnimationOne->OnStatic(ledDataOne);
-    break;
-  default:
-    Serial.println("Unsupported Type of Animation detected !!!!!");
-  }
+  activeAnimationOne->OnFastLoop(ledDataOne);
 
 #ifdef LED_STRING_TWO_PRESENT
-  switch (activeAnimationTwo->Kind())
-  {
-  case AnimationType::OnHallEvent:
-    activeAnimationTwo->OnHall(ledDataTwo);
-    break;
-  case AnimationType::OnBeatEvent:
-    activeAnimationTwo->OnBeat(ledDataTwo);
-    break;
-  case AnimationType::OnStaticEvent:
-    activeAnimationTwo->OnBeat(ledDataTwo);
-    break;
-    // default:
-  }
+  activeAnimationTwo->OnFastLoop(ledDataTwo);
 #endif
-
-  FastLED.show();
-  // Serial.println("FastLED.show() call");
 }
-
-// void ledCodeOnLoop()
-// {
-//   activeAnimationOne->OnFastLoop(ledDataOne);
-
-// #ifdef LED_STRING_TWO_PRESENT
-//   activeAnimationTwo->OnFastLoop(ledDataTwo);
-// #endif
-// }
 
 void ledCodeOnSetup()
 {
@@ -354,22 +305,50 @@ BeatCalculationResult CalculateBeat()
 #ifdef SHOW_BEAT_INFO
     printList();
 #endif
-    Serial.println("BEAT-------CALCULATED-----");
+
+    uint16_t highest = 0;
+    uint16_t lowest = 10000;
+
+    for (int i = 0; i < length; i++)
+    {
+      if (lowest > beatEventList[i])
+      {
+        lowest = beatEventList[i];
+      }
+      if (highest < beatEventList[i])
+      {
+        highest = beatEventList[i];
+      }
+    }
+#ifdef SHOW_BEAT_INFO
+    Serial.print("LOW: ");
+    Serial.println(lowest);
+    Serial.print("HIGH: ");
+    Serial.println(highest);
+#endif
     beatStartedAgo = beatEventList[0];
     averageBeatTime = beatEventList[0];
     lastBeatQueLength = length;
+
     // GaussianAverage average = GaussianAverage();
 
     for (int i = 1; i < length; i++)
     {
       uint16_t delay = beatEventList[i];
+
       if (delay > DEBOUNCE_SWITCH_MAX_MS)
         continue;
+
+      if (delay == highest)
+        continue;
+      if (delay == lowest)
+        continue;
+
       averageBeatTime = (averageBeatTime + delay) / 2;
       beatStartedAgo += delay;
     }
-    // Gaussian mean = average.process();
 
+    averageBeatTime = averageBeatTime - BEAT_MINUS_CORRECTION;
     long beatStartTime = now - beatStartedAgo;
     nextBeat = beatStartTime + (beatStartedAgo / averageBeatTime) + averageBeatTime;
 
@@ -384,6 +363,11 @@ BeatCalculationResult CalculateBeat()
     Serial.print("Beat Start ago:");
     Serial.println(beatStartedAgo);
 #endif
+
+#ifdef SHOW_BEAT_INFO
+    Serial.println("BEAT-------NEW BEAT ACTIVATED-----");
+#endif
+
     return BeatCalculationResult::NewResult;
   }
   else
@@ -452,6 +436,7 @@ void UpdatePotPosition()
 #endif
 }
 #endif
+
 void UpdatePosition(struct ledData &data, uint16_t delta)
 {
 #ifdef SHOW_POSITION_PRINT_INFO
@@ -504,7 +489,9 @@ void loopBeatHandling()
     switch (CalculateBeat())
     {
     case BeatCalculationResult::NewResult:
+#ifdef SHOW_BEAT_INFO
       Serial.println("Set Beat to new Time---------------------------");
+#endif
       beatTask.setPeriod(averageBeatTime);
       beatTaskActive = true;
       break;
@@ -514,8 +501,10 @@ void loopBeatHandling()
     case BeatCalculationResult::NotValidResult:
       if (beatTaskActive)
       {
+#ifdef SHOW_BEAT_INFO
         Serial.println("Stop Beat Animation ---------------------------");
-         beatTask.setPeriod(DEFAULT_SLOW_BEAT);
+#endif
+        beatTask.setPeriod(DEFAULT_SLOW_BEAT);
         beatTaskActive = false;
       }
       break;
@@ -524,6 +513,77 @@ void loopBeatHandling()
     }
   }
   beatLock = false;
+}
+
+#ifdef HALL_SUPPORTED
+void OnHallEvent()
+{
+  switch (activeAnimationOne->Kind())
+  {
+
+  case AnimationType::OnHallEvent:
+    // Serial.print("On Hall Event ");
+    // Serial.println(activeAnimationOne->Name());
+
+    if (eventList.length() != 0)
+    {
+      UpdatePosition(ledDataOne, activeAnimationOne->PosIncrement());
+      activeAnimationOne->OnHall(ledDataOne);
+
+#ifdef LED_STRING_TWO_PRESENT
+      UpdatePosition(ledDataTwo, activeAnimationTwo->PosIncrement());
+      activeAnimationTwo->OnHall(ledDataTwo);
+#endif
+      // que makes sure that we dont miss interrupt events
+      eventList.pop_back();
+    }
+
+    break;
+
+  default:
+    Serial.println("Unsupported Type of Animation detected !!!!!");
+  }
+
+  FastLED.show();
+}
+#endif
+
+void BeatEvent()
+{
+  switch (activeAnimationOne->Kind())
+  {
+  case AnimationType::OnBeatEvent:
+    UpdatePosition(ledDataOne, activeAnimationOne->PosIncrement());
+    activeAnimationOne->OnBeat(ledDataOne);
+
+#ifdef LED_STRING_TWO_PRESENT
+    UpdatePosition(ledDataTwo, activeAnimationTwo->PosIncrement());
+    activeAnimationTwo->OnBeat(ledDataTwo);
+#endif
+    break;
+  default:
+    Serial.println("Unsupported Type of Animation detected !!!!!");
+  }
+
+  FastLED.show();
+}
+
+void OnStaticAnimationEvent()
+{
+  switch (activeAnimationOne->Kind())
+  {
+
+  case AnimationType::OnStaticEvent:
+    activeAnimationOne->OnStatic(ledDataOne);
+#ifdef LED_STRING_TWO_PRESENT
+    activeAnimationTwo->OnStatic(ledDataTwo);
+#endif
+    break;
+  default:
+    Serial.println("Unsupported Type of Animation detected !!!!!");
+  }
+
+  FastLED.show();
 }
 
 void loop()
@@ -547,6 +607,12 @@ void loop()
       potPosition++;
     else
       potPosition = 0;
+
+    activeAnimationOne = ledFunctionsOne[potPosition];
+#ifdef LED_STRING_TWO_PRESENT
+    activeAnimationTwo = ledFunctionsTwo[potPosition];
+#endif
+
 #endif
   }
 
@@ -589,27 +655,15 @@ void loop()
     // lock is making sure that the led routine gets not entered when it
     // is already running (avoid crash and reentrance)
     lock = true;
-
-    if (eventList.length() != 0)
-    {
-      UpdatePosition(ledDataOne, deltaOne);
-
-#ifdef LED_STRING_TWO_PRESENT
-      UpdatePosition(ledDataTwo, deltaTwo);
-#endif
-
-      OnAnimationEvent();
-
-      // que makes sure that we dont miss interrupt events
-      eventList.pop_back();
-
-      // digitalToggleFast(LED_BUILTIN);
-    }
-    lock = false;
+    OnHallEvent();
   }
+  lock = false;
+}
 #endif
 
-  loopBeatHandling();
+loopBeatHandling();
+ledCodeOnLoop();
+OnStaticAnimationEvent();
 }
 
 void initAnimations()
@@ -647,10 +701,10 @@ void initAnimations()
 
 #ifdef JACKET
   ledFunctionsOne[0] = new LeftRightAnimation();
-  ledFunctionsOne[1] = new HeartBeatAnimation();
-  ledFunctionsOne[2] = new BpmAnimation();
-  ledFunctionsOne[3] = new LeftRightAnimation();
-  ledFunctionsOne[4] = new LeftRightAnimation();
+  ledFunctionsOne[1] = new JuggleBeatAnimation();
+  ledFunctionsOne[2] = new SinelonBeatAnimation();
+  ledFunctionsOne[3] = new RotateBeatAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 2, 2, 12, NUM_LEDS_ONE);
+  ledFunctionsOne[4] = new BpmAnimation();
   ledFunctionsOne[5] = new LeftRightAnimation();
   ledFunctionsOne[6] = new LeftRightAnimation();
   ledFunctionsOne[7] = new JuggleAnimation();
@@ -718,14 +772,19 @@ void setup()
   initPot();
 #endif
 
-  // numberOfAnimations = sizeof(ledFunctionsOne) / sizeof(ledFunctionsOne[0]);
+// numberOfAnimations = sizeof(ledFunctionsOne) / sizeof(ledFunctionsOne[0]);
+#ifdef JACKET
+  numberOfAnimations = NO_OF_JACKET_BEAT_ANIMATION;
+  numberOfPotPositions = 0;
+#else
   numberOfAnimations = 12;
   numberOfPotPositions = 12;
+#endif
 
 #ifdef POT_SUPPORTED
   UpdatePotPosition();
 #else
-  SelectFunction(0);
+  SelectFunction(ACTIVE_BEAT_ANIMATION_DEFAULT);
 #endif
 
   Serial.print("Number of Pot Positions:");
