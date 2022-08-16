@@ -1,23 +1,25 @@
-#ifndef RAINBOWANIMATION_HPP
-#define RAINBOWANIMATION_HPP
+#ifndef RAINBOW2ANIMATION_HPP
+#define RAINBOW2ANIMATION_HPP
 
 #include <Arduino.h>
 #include <FastLED.h>
 #include "defines.h"
 
-class RainbowLedAnimation : public LedAnimation
+class Rainbow2LedAnimation : public IAnimation
 {
     
     uint8_t rainbowHue = 0;
 
 public:
-    RainbowLedAnimation() {}
+    Rainbow2LedAnimation() {}
+    AnimationType Kind() { return AnimationType::OnHallEvent; }
     void OnHallEvent(struct ledData data)
     {
         fill_rainbow(data.leds, data.noOfLeds, 7);
         rainbowHue += 10;
     };
     void OnSetup(){}
-    void OnFastLoop() {}
+
+    String Name() { return "Rainbow2"; }
 };
 #endif
