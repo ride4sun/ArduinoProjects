@@ -4,10 +4,11 @@
 #include <Arduino.h>
 #include <FastLED.h>
 #include "defines.h"
-
+#include <string>
 
 class RotateAnimation : public IAnimation
 {
+    uint8_t index;
     uint16_t noOfSpots;
     uint16_t spotLength;
     uint8_t fadeRatio;
@@ -21,7 +22,7 @@ class RotateAnimation : public IAnimation
     bool colorToggle;
 
 public:
-    RotateAnimation(ColorMode colorMode, CRGB colorOne, CRGB colorTwo, uint16_t noOfSpots, uint16_t spotLength, uint8_t fadeRatio, uint16_t numberOfLeds)
+    RotateAnimation(uint8_t index, ColorMode colorMode, CRGB colorOne, CRGB colorTwo, uint16_t noOfSpots, uint16_t spotLength, uint8_t fadeRatio, uint16_t numberOfLeds)
     {
         this->noOfSpots = noOfSpots;
         this->spotLength = spotLength;
@@ -31,21 +32,31 @@ public:
         this->numberOfLeds = numberOfLeds;
         this->toggleColor = toggleColor;
         this->colorMode = colorMode;
+        this->index = index;
         colorToggle = colorMode == TwoColorFade || colorMode == TwoColor;
     }
 
 public:
     AnimationType Kind() { return AnimationType::OnHallEvent; }
-    void OnHallEvent(struct ledData data)
+
+    String ToString()
     {
+        return String(index);
+    }
+
+    void OnHall(struct ledData data)
+    {
+        // Serial.println("ROTATE HALL ----------------------------------------");
+
         if (colorMode == OneColorFade || colorMode == TwoColorFade || colorMode == RainBowFade)
             fadeToBlackBy(data.leds, data.noOfLeds, fadeRatio);
-        else{
-            FastLED.clear();
-            // for (uint16_t b = 0; b < data.noOfLeds; b++)
-            //     data.leds[b] = CRGB::Black;
+        else
+        {
+            // FastLED.clear();
+            for (uint16_t b = 0; b < data.noOfLeds; b++)
+                data.leds[b] = CRGB::Black;
         }
-            
+
         uint16_t currentPos;
         uint16_t correctedPos;
 
@@ -55,7 +66,7 @@ public:
 
             for (uint16_t i = 0; i < spotLength; i++)
             {
-                correctedPos  = (currentPos + i) % data.noOfLeds;
+                correctedPos = (currentPos + i) % data.noOfLeds;
 
                 if (colorMode == RainBow || colorMode == RainBowFade)
                 {
@@ -75,6 +86,12 @@ public:
                 toggleColor = !toggleColor;
         }
     };
+
+    void OnFastLoop(struct ledData data)
+    {
+        // fadeToBlackBy(data.leds, data.noOfLeds, 120);
+    };
+
     void OnSetup()
     {
 
@@ -99,7 +116,7 @@ public:
 
         Serial.println("----------Rotate setup end----------------");
     }
-    
+
     String Name() { return "Rotate"; }
 };
 

@@ -45,6 +45,7 @@ IAnimation *activeAnimationOne;
 IAnimation *activeAnimationTwo;
 
 void BeatEvent();
+void OnHall();
 
 // setup task but make sure the event is not happening
 // the time setup will be updated later to the beat
@@ -63,8 +64,10 @@ public:
   uint16_t start = 0;
   uint16_t stop = 0;
 };
-
+#ifdef POT_SUPPORTED
 PotPosLimits potPositions[12];
+#endif
+
 IAnimation *ledFunctionsOne[12];
 
 #ifdef LED_STRING_TWO_PRESENT
@@ -195,7 +198,7 @@ void interruptHall()
 void interruptHallSimulated()
 {
   eventList.push_back(true);
-  OnAnimationEvent();
+  OnHall();
 }
 #endif
 
@@ -516,21 +519,37 @@ void loopBeatHandling()
 }
 
 #ifdef HALL_SUPPORTED
-void OnHallEvent()
+void OnHall()
 {
   switch (activeAnimationOne->Kind())
   {
-
   case AnimationType::OnHallEvent:
     // Serial.print("On Hall Event ");
     // Serial.println(activeAnimationOne->Name());
 
     if (eventList.length() != 0)
     {
+      Serial.print("INNER: HALL --> ");
+      Serial.print(activeAnimationOne->Name());
+      Serial.print("Kind -> ");
+      Serial.print(activeAnimationOne->Kind());
+      Serial.print("Index -> ");
+      Serial.println(activeAnimationOne->ToString());
+      // Serial.print("spotLength -> ");
+      // Serial.println(RotateAnimation as activeAnimationOne)->getSpotLength());
+
       UpdatePosition(ledDataOne, activeAnimationOne->PosIncrement());
       activeAnimationOne->OnHall(ledDataOne);
 
 #ifdef LED_STRING_TWO_PRESENT
+
+      Serial.print("INNER: HALL --> ");
+      Serial.print(activeAnimationTwo->Name());
+      Serial.print("Kind -> ");
+      Serial.print(activeAnimationTwo->Kind());
+      Serial.print("Index -> ");
+      Serial.println(activeAnimationTwo->ToString());
+
       UpdatePosition(ledDataTwo, activeAnimationTwo->PosIncrement());
       activeAnimationTwo->OnHall(ledDataTwo);
 #endif
@@ -541,7 +560,7 @@ void OnHallEvent()
     break;
 
   default:
-    Serial.println("Unsupported Type of Animation detected !!!!!");
+    break;
   }
 
   FastLED.show();
@@ -560,9 +579,16 @@ void BeatEvent()
     UpdatePosition(ledDataTwo, activeAnimationTwo->PosIncrement());
     activeAnimationTwo->OnBeat(ledDataTwo);
 #endif
+
     break;
+
   default:
-    Serial.println("Unsupported Type of Animation detected !!!!!");
+    break;
+    // Serial.print(activeAnimationOne->Kind());
+    // Serial.print(" ");
+    // Serial.print(activeAnimationOne->Name());
+    // Serial.print(" ");
+    // Serial.println("Unsupported Type of Animation detected on Beat Event !!!!!");
   }
 
   FastLED.show();
@@ -570,19 +596,10 @@ void BeatEvent()
 
 void OnStaticAnimationEvent()
 {
-  switch (activeAnimationOne->Kind())
-  {
-
-  case AnimationType::OnStaticEvent:
-    activeAnimationOne->OnStatic(ledDataOne);
+  activeAnimationOne->OnStatic(ledDataOne);
 #ifdef LED_STRING_TWO_PRESENT
-    activeAnimationTwo->OnStatic(ledDataTwo);
+  activeAnimationTwo->OnStatic(ledDataTwo);
 #endif
-    break;
-  default:
-    Serial.println("Unsupported Type of Animation detected !!!!!");
-  }
-
   FastLED.show();
 }
 
@@ -591,22 +608,19 @@ void loop()
   // runner.execute();
   SchedBase::dispatcher();
 
-  // #ifdef AUTO_FIRE_BEAT
-  //   EVERY_N_MILLISECONDS(BEAT_SIMULATION_MS) // Advance pixels to next position.
-  //   {
-  //     OnStationaryBeatAnimation();
-  //   }
-  // #endif
-
   // slow updates here ...
   EVERY_N_MILLISECONDS(30000) // Advance pixels to next position.
   {
 
 #ifdef AUTO_SELECT_ANIMATION
     if (potPosition < (numberOfAnimations - 1))
+    {
       potPosition++;
+    }
     else
+    {
       potPosition = 0;
+    }
 
     activeAnimationOne = ledFunctionsOne[potPosition];
 #ifdef LED_STRING_TWO_PRESENT
@@ -640,9 +654,9 @@ void loop()
 #endif
 
 #ifdef HALL_SUPPORTED
-  EVERY_N_MILLISECONDS(SIMULATED_INTERRUPT_TIME) // Advance pixels to next position.
+  EVERY_N_MILLISECONDS(SIMULATED_HALL_INTERRUPT_TIME) // Advance pixels to next position.
   {
-#ifdef SIMULATED_INTERRUPT
+#ifdef SIMULATED_HALL_INTERRUPT
     if (simulateHallSensorEvents)
       interruptHallSimulated();
 #endif
@@ -655,46 +669,46 @@ void loop()
     // lock is making sure that the led routine gets not entered when it
     // is already running (avoid crash and reentrance)
     lock = true;
-    OnHallEvent();
+    OnHall();
   }
   lock = false;
-}
+
 #endif
 
-loopBeatHandling();
-ledCodeOnLoop();
-OnStaticAnimationEvent();
+  loopBeatHandling();
+  ledCodeOnLoop();
+  OnStaticAnimationEvent();
 }
 
 void initAnimations()
 {
   Serial.println("Init Animations---------------------------");
 #ifdef HALL_SUPPORTED
-  ledFunctionsOne[0] = new RotateAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 2, 40, 12, NUM_LEDS_ONE);
-  ledFunctionsOne[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 2, 40, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 2, 40, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[5] = new LeftRightAnimation();
-  ledFunctionsOne[6] = new HeartBeatAnimation();
-  ledFunctionsOne[7] = new BpmAnimation();
-  ledFunctionsOne[8] = new RainbowLedAnimation();
-  ledFunctionsOne[9] = new JuggleAnimation();
-  ledFunctionsOne[10] = new SinelonAnimation();
+  ledFunctionsOne[0] = new RotateAnimation(0, ColorMode::OneColor, CRGB::Blue, CRGB::Red, 8, 4, 12, NUM_LEDS_ONE);
+  ledFunctionsOne[1] = new RotateAnimation(1, ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
+  ledFunctionsOne[2] = new RotateAnimation(2, ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
+  ledFunctionsOne[3] = new RotateAnimation(3, ColorMode::RainBow, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
+  ledFunctionsOne[4] = new RotateAnimation(4, ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
+  ledFunctionsOne[5] = new JuggleAnimation();
+  ledFunctionsOne[6] = new SinelonAnimation();
+  ledFunctionsOne[7] = new RainbowLedAnimation();
+  ledFunctionsOne[8] = new LeftRightAnimation();
+  ledFunctionsOne[9] = new JuggleBeatAnimation();
+  ledFunctionsOne[10] = new SinelonBeatAnimation();
   ledFunctionsOne[11] = new SinelonAnimation();
 
 #ifdef LED_STRING_TWO_PRESENT
-  ledFunctionsTwo[0] = new RotateAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 1, 20, 12, NUM_LEDS_TWO);
-  ledFunctionsTwo[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 2, 10, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 5, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[5] = new LeftRightAnimation();
-  ledFunctionsTwo[6] = new HeartBeatAnimation();
-  ledFunctionsTwo[7] = new BpmAnimation();
-  ledFunctionsTwo[8] = new RainbowLedAnimation();
-  ledFunctionsTwo[9] = new JuggleAnimation();
-  ledFunctionsTwo[10] = new SinelonAnimation();
+  ledFunctionsTwo[0] = new RotateAnimation(5, ColorMode::OneColor, CRGB::Blue, CRGB::Red, 4, 2, 12, NUM_LEDS_TWO);
+  ledFunctionsTwo[1] = new RotateAnimation(6, ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
+  ledFunctionsTwo[2] = new RotateAnimation(7, ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
+  ledFunctionsTwo[3] = new RotateAnimation(8, ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
+  ledFunctionsTwo[4] = new RotateAnimation(8, ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
+  ledFunctionsTwo[5] = new JuggleAnimation();
+  ledFunctionsTwo[6] = new SinelonAnimation();
+  ledFunctionsTwo[7] = new RainbowLedAnimation();
+  ledFunctionsTwo[8] = new LeftRightAnimation();
+  ledFunctionsTwo[9] = new JuggleBeatAnimation();
+  ledFunctionsTwo[10] = new SinelonBeatAnimation();
   ledFunctionsTwo[11] = new SinelonAnimation();
 #endif
 #endif

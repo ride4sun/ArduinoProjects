@@ -12,7 +12,7 @@ class JuggleAnimation : public IAnimation
 public:
     JuggleAnimation() {}
     AnimationType Kind() { return AnimationType::OnStaticEvent; }
-    void OnFastLoop(struct ledData data)
+    void OnStatic(struct ledData data)
     {
         // eight colored dots, weaving in and out of sync with each other
         fadeToBlackBy(data.leds, data.noOfLeds, 20);

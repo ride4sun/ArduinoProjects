@@ -15,7 +15,7 @@ class CandyCaneAnimation : public IAnimation
 public:
     CandyCaneAnimation() {}
     AnimationType Kind() { return AnimationType::OnHallEvent; }
-    void OnHallEvent(struct ledData data)
+    void OnHall(struct ledData data)
     {
         for (uint16_t i = 0; i < data.noOfLeds; i++)
         {

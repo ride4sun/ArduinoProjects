@@ -9,7 +9,7 @@ class ApplauseAnimation : public IAnimation
 {
 public:
     ApplauseAnimation() {}
-    AnimationType Kind() { return AnimationType::OnHallEvent; }
+    AnimationType Kind() { return AnimationType::OnBeatEvent; }
     void OnBeat(struct ledData data){
 
         static uint16_t lastPixel = 0;

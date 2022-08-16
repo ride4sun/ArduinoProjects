@@ -12,7 +12,7 @@ class SinelonAnimation : public IAnimation
 public:
     SinelonAnimation() {}
     AnimationType Kind() { return AnimationType::OnHallEvent; }
-    void OnHallEvent(struct ledData data)  {
+    void OnHall(struct ledData data)  {
         // a colored dot sweeping back and forth, with fading trails
         fadeToBlackBy(data.leds, data.noOfLeds, 20);
         int pos = beatsin16(13, 0, data.noOfLeds - 1);

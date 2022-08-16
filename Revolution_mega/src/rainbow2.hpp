@@ -13,7 +13,7 @@ class Rainbow2LedAnimation : public IAnimation
 public:
     Rainbow2LedAnimation() {}
     AnimationType Kind() { return AnimationType::OnHallEvent; }
-    void OnHallEvent(struct ledData data)
+    void OnHall(struct ledData data)
     {
         fill_rainbow(data.leds, data.noOfLeds, 7);
         rainbowHue += 10;
