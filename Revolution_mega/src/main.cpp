@@ -529,12 +529,12 @@ void OnHall()
 
     if (eventList.length() != 0)
     {
-      Serial.print("INNER: HALL --> ");
-      Serial.print(activeAnimationOne->Name());
-      Serial.print("Kind -> ");
-      Serial.print(activeAnimationOne->Kind());
-      Serial.print("Index -> ");
-      Serial.println(activeAnimationOne->ToString());
+      // Serial.print("INNER: HALL --> ");
+      // Serial.print(activeAnimationOne->Name());
+      // Serial.print("Kind -> ");
+      // Serial.print(activeAnimationOne->Kind());
+      // Serial.print("Index -> ");
+      // Serial.println(activeAnimationOne->ToString());
       // Serial.print("spotLength -> ");
       // Serial.println(RotateAnimation as activeAnimationOne)->getSpotLength());
 
@@ -543,12 +543,12 @@ void OnHall()
 
 #ifdef LED_STRING_TWO_PRESENT
 
-      Serial.print("INNER: HALL --> ");
-      Serial.print(activeAnimationTwo->Name());
-      Serial.print("Kind -> ");
-      Serial.print(activeAnimationTwo->Kind());
-      Serial.print("Index -> ");
-      Serial.println(activeAnimationTwo->ToString());
+      // Serial.print("INNER: HALL --> ");
+      // Serial.print(activeAnimationTwo->Name());
+      // Serial.print("Kind -> ");
+      // Serial.print(activeAnimationTwo->Kind());
+      // Serial.print("Index -> ");
+      // Serial.println(activeAnimationTwo->ToString());
 
       UpdatePosition(ledDataTwo, activeAnimationTwo->PosIncrement());
       activeAnimationTwo->OnHall(ledDataTwo);
