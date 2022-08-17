@@ -16,8 +16,8 @@
 #include <juggle.hpp>
 #include <juggleBeat.hpp>
 #include <SchedTask.h>
-#include <Gaussian.h>
 #include <LinkedList.h>
+#include <leftRightWide.hpp>
 
 // #include <TaskScheduler.h>
 
@@ -684,32 +684,34 @@ void initAnimations()
 {
   Serial.println("Init Animations---------------------------");
 #ifdef HALL_SUPPORTED
-  ledFunctionsOne[0] = new RotateAnimation(0, ColorMode::OneColor, CRGB::Blue, CRGB::Red, 8, 4, 12, NUM_LEDS_ONE);
-  ledFunctionsOne[1] = new RotateAnimation(1, ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
+  ledFunctionsOne[0] = new RotateAnimation(0, ColorMode::OneColor, CRGB::Blue, CRGB::Red, 30, 1, 12, NUM_LEDS_ONE);
+  ledFunctionsOne[1] = new RotateAnimation(1, ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 30, 4, 120, NUM_LEDS_ONE);
   ledFunctionsOne[2] = new RotateAnimation(2, ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
   ledFunctionsOne[3] = new RotateAnimation(3, ColorMode::RainBow, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
   ledFunctionsOne[4] = new RotateAnimation(4, ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[5] = new JuggleAnimation();
+  ledFunctionsOne[5] = new RainbowLedAnimation();
   ledFunctionsOne[6] = new SinelonAnimation();
-  ledFunctionsOne[7] = new RainbowLedAnimation();
+  ledFunctionsOne[7] = new JuggleAnimation();
   ledFunctionsOne[8] = new LeftRightAnimation();
-  ledFunctionsOne[9] = new JuggleBeatAnimation();
-  ledFunctionsOne[10] = new SinelonBeatAnimation();
-  ledFunctionsOne[11] = new SinelonAnimation();
+  ledFunctionsOne[9] = new LeftRightWideAnimation();
+  ledFunctionsOne[10] = new JuggleBeatAnimation();
+  ledFunctionsOne[11] = new SinelonBeatAnimation();
+  
 
 #ifdef LED_STRING_TWO_PRESENT
-  ledFunctionsTwo[0] = new RotateAnimation(5, ColorMode::OneColor, CRGB::Blue, CRGB::Red, 4, 2, 12, NUM_LEDS_TWO);
-  ledFunctionsTwo[1] = new RotateAnimation(6, ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
+  ledFunctionsTwo[0] = new RotateAnimation(5, ColorMode::OneColor, CRGB::Blue, CRGB::Red, 16, 1, 12, NUM_LEDS_TWO);
+  ledFunctionsTwo[1] = new RotateAnimation(6, ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 16, 3, 120, NUM_LEDS_TWO);
   ledFunctionsTwo[2] = new RotateAnimation(7, ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
   ledFunctionsTwo[3] = new RotateAnimation(8, ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
   ledFunctionsTwo[4] = new RotateAnimation(8, ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[5] = new JuggleAnimation();
+  ledFunctionsTwo[5] = new RainbowLedAnimation();
   ledFunctionsTwo[6] = new SinelonAnimation();
-  ledFunctionsTwo[7] = new RainbowLedAnimation();
+  ledFunctionsTwo[7] = new JuggleAnimation();
   ledFunctionsTwo[8] = new LeftRightAnimation();
-  ledFunctionsTwo[9] = new JuggleBeatAnimation();
-  ledFunctionsTwo[10] = new SinelonBeatAnimation();
-  ledFunctionsTwo[11] = new SinelonAnimation();
+  ledFunctionsTwo[9] = new LeftRightWideAnimation();
+  ledFunctionsTwo[10] = new JuggleBeatAnimation();
+  ledFunctionsTwo[11] = new SinelonBeatAnimation();
+  
 #endif
 #endif
 
