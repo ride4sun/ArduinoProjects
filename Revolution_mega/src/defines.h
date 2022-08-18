@@ -1,10 +1,9 @@
 #ifndef DEFINE_H
 #define DEFINE_H
 
-#define HALL_SUPPORTED
-#define POT_SUPPORTED
-
-//#define JACKET
+//#define HALL_SUPPORTED
+//#define POT_SUPPORTED
+#define JACKET
 
 //2 wire LED setup - no clock chip
 #define LED_TYPE WS2812B
@@ -31,10 +30,10 @@
 
 #define RESET_BEAT_AFTER_DELAY_TIME  3000  // Reset the Beat detection after the user did not press the button for more than 3000
 
-#define NUM_LEDS_ONE 150 //Jacket led
+#define NUM_LEDS_ONE 90 //Jacket led
 #define NUM_LEDS_TWO 48 //inner ring - same as on card
 
-//#define NUM_LEDS_ONE 306 //big Ring on Golfcart
+// #define NUM_LEDS_ONE 306 //big Ring on Golfcart
 
 
 #define COLOR_ORDER GRB
@@ -43,7 +42,7 @@
 #define DATA_PIN_TWO 5 // LED Signal Inner - Pin4 on the board.
 
 //comment out when there is only one led string present (ONE)
-#define LED_STRING_TWO_PRESENT 
+//#define LED_STRING_TWO_PRESENT 
 
 #define BRIGHTNESS 100
  
@@ -51,7 +50,7 @@
 //#define SIMULATED_HALL_INTERRUPT
 
 //use when the potentiometer is not present
-//#define AUTO_SELECT_ANIMATION
+#define AUTO_SELECT_ANIMATION
 
 
 //#define SHOW_POSITION_PRINT_INFO
