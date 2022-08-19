@@ -1,18 +1,18 @@
 #ifndef DEFINE_H
 #define DEFINE_H
 
-//UNCOMMENT SECTION FOR JACKET
+UNCOMMENT SECTION FOR JACKET
 #define JACKET
 #define NUM_LEDS_ONE 90 //Jacket led
 //use when the potentiometer is not present
 #define AUTO_SELECT_ANIMATION
 
 //UNCOMMENT SECTION FOR GOLF CARD
-//#define NUM_LEDS_ONE 306 //big Ring on Golfcart
-//#define NUM_LEDS_TWO 48 //inner ring - same as on card
-//#define LED_STRING_TWO_PRESENT 
-//#define HALL_SUPPORTED
-//#define POT_SUPPORTED
+#define NUM_LEDS_ONE 306 //big Ring on Golfcart
+#define NUM_LEDS_TWO 48 //inner ring - same as on card
+#define LED_STRING_TWO_PRESENT 
+#define HALL_SUPPORTED
+#define POT_SUPPORTED
 
 //UNCOMMENT SECTION FOR BIG TEST SETUP
 //#define NUM_LEDS_ONE 150 //big Ring test setup
@@ -27,7 +27,12 @@
 //#define SHOW_POTENTIOMETER_INFO
 //#define SHOW_LOCK_AND_QUEUE_INFO
 //#define SHOW_BEAT_INFO
-#define SHOW_STARTUP_ANIMATION
+//#define SHOW_STARTUP_ANIMATION
+
+//Simulated HAll Interrupt
+#define SIMULATED_HALL_INTERRUPT_TIME 100
+//#define SIMULATED_HALL_INTERRUPT
+
 
 //2 wire LED setup - no clock chip
 #define LED_TYPE WS2812B
@@ -46,8 +51,6 @@
 #define ACTIVE_BEAT_ANIMATION_DEFAULT 0
 #define NO_OF_JACKET_BEAT_ANIMATION 6
 
-#define SIMULATED_HALL_INTERRUPT_TIME 100
-//#define SIMULATED_HALL_INTERRUPT
 
 
 //BEAT SETUP - BEAT IS ALWAYS ENABLED
@@ -110,9 +113,7 @@ public:
    virtual void OnStatic(struct ledData){}
 
    virtual uint8_t PosIncrement(){return 1;}
-  //  virtual void Every20MilliSecond(struct ledData){}
    virtual void Every100MilliSecond(struct ledData){}
-  //  virtual void Every200MilliSecond(struct ledData){}
    virtual void OnFastLoop(struct ledData){}
 
    virtual String ToString(){return "not defined";}
