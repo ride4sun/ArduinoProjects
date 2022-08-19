@@ -9,6 +9,7 @@ class BpmAnimation : public IAnimation
 {
     bool toggle = false;
     uint8_t gHue = 0;
+    bool second = false;
 
 public:
     BpmAnimation() {}
@@ -16,20 +17,29 @@ public:
     AnimationType Kind() { return AnimationType::OnBeatEvent; }
     void OnBeat(struct ledData data)
     {
-        // fadeToBlackBy(data.leds, data.noOfLeds, 150);
-        
-
+        second = true;
+        fadeToBlackBy(data.leds, data.noOfLeds, data.pos);
         for (uint16_t i = 0; i < data.noOfLeds; i++)
-        { // 9948
-            uint8_t beat = beatsin8(i, 0, 30);
-            if (toggle)
-                data.leds[i] = CHSV(beat, 255, 255);
-            else
-                data.leds[i] = CRGB::Black;
+        {
+            data.leds[i] = CHSV(gHue, 255, 255);
         }
-        gHue++;
-        toggle = !toggle;
-        // gHue++;
+        
+    };
+
+    uint8_t pos = 0;
+    uint8_t pos2 = 0;
+
+    void OnFastLoop(struct ledData data)
+    {
+        fadeToBlackBy(data.leds, data.noOfLeds, 25);
+    };
+
+    void Every100MilliSecond(struct ledData data)
+    {
+        if(second){
+            this->OnBeat(data);
+        }
+        second = false;
     };
 };
 #endif

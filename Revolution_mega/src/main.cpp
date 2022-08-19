@@ -18,12 +18,13 @@
 #include <SchedTask.h>
 #include <LinkedList.h>
 #include <leftRightWide.hpp>
+#include <heartBeat.hpp>
 
 // #include <TaskScheduler.h>
 
 #include "QList.h"
 #include "defines.h"
-#define FASTLED_INTERRUPT_RETRY_COUNT 2
+
 // #define FASTLED_ALLOW_INTERRUPTS 0 // Needed to fix jitter/fluttering!
 #include "FastLED.h"
 
@@ -51,19 +52,6 @@ void OnHall();
 // the time setup will be updated later to the beat
 SchedTask beatTask(0, DEFAULT_SLOW_BEAT, BeatEvent);
 
-class PotPosLimits
-{
-public:
-  PotPosLimits() {}
-
-  PotPosLimits(uint16_t st, uint16_t sp)
-  {
-    start = st;
-    stop = sp;
-  }
-  uint16_t start = 0;
-  uint16_t stop = 0;
-};
 #ifdef POT_SUPPORTED
 PotPosLimits potPositions[12];
 #endif
@@ -105,6 +93,99 @@ long now = 0;
 LinkedList<uint16_t> beatEventList = LinkedList<uint16_t>();
 // has all interrupt events
 int lastBeatQueLength = 0;
+
+void initAnimations()
+{
+  Serial.println("Init Animations---------------------------");
+#ifdef HALL_SUPPORTED
+  ledFunctionsOne[0] = new RotateAnimation(0, ColorMode::OneColor, CRGB::Blue, CRGB::Red, 30, 1, 12, NUM_LEDS_ONE);
+  ledFunctionsOne[1] = new RotateAnimation(1, ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 30, 4, 120, NUM_LEDS_ONE);
+  ledFunctionsOne[2] = new RotateAnimation(2, ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
+  ledFunctionsOne[3] = new RotateAnimation(3, ColorMode::RainBow, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
+  ledFunctionsOne[4] = new RotateAnimation(4, ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
+  ledFunctionsOne[5] = new RainbowLedAnimation();
+  ledFunctionsOne[6] = new SinelonAnimation();
+  ledFunctionsOne[7] = new JuggleAnimation();
+  ledFunctionsOne[8] = new LeftRightAnimation();
+  ledFunctionsOne[9] = new LeftRightWideAnimation();
+  ledFunctionsOne[10] = new JuggleBeatAnimation();
+  ledFunctionsOne[11] = new SinelonBeatAnimation();
+
+#ifdef LED_STRING_TWO_PRESENT
+  ledFunctionsTwo[0] = new RotateAnimation(5, ColorMode::OneColor, CRGB::Blue, CRGB::Red, 16, 1, 12, NUM_LEDS_TWO);
+  ledFunctionsTwo[1] = new RotateAnimation(6, ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 16, 3, 120, NUM_LEDS_TWO);
+  ledFunctionsTwo[2] = new RotateAnimation(7, ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
+  ledFunctionsTwo[3] = new RotateAnimation(8, ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
+  ledFunctionsTwo[4] = new RotateAnimation(8, ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
+  ledFunctionsTwo[5] = new RainbowLedAnimation();
+  ledFunctionsTwo[6] = new SinelonAnimation();
+  ledFunctionsTwo[7] = new JuggleAnimation();
+  ledFunctionsTwo[8] = new LeftRightAnimation();
+  ledFunctionsTwo[9] = new LeftRightWideAnimation();
+  ledFunctionsTwo[10] = new JuggleBeatAnimation();
+  ledFunctionsTwo[11] = new SinelonBeatAnimation();
+
+#endif
+#endif
+
+#ifdef JACKET
+  ledFunctionsOne[0] = new BpmAnimation();
+  ledFunctionsOne[1] = new HeartBeatAnimation();
+  ledFunctionsOne[2] = new LeftRightWideAnimation();
+  ledFunctionsOne[3] = new LeftRightAnimation();
+  ledFunctionsOne[4] = new JuggleBeatAnimation();
+  //ledFunctionsOne[5] = new RotateBeatAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 2, 2, 12, NUM_LEDS_ONE);
+  ledFunctionsOne[5] = new SinelonBeatAnimation();
+  
+
+#endif
+
+  // ledFunctionsOne[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsOne[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsOne[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsOne[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+
+  // ledFunctionsWhenStationaryOne[0] = new HeartBeatAnimation();
+  // ledFunctionsWhenStationaryOne[1] = new LeftRightAnimation();
+  // ledFunctionsWhenStationaryOne[2] = new JuggleAnimation();
+  // ledFunctionsWhenStationaryOne[3] = new BpmAnimation();
+
+  // ledFunctionsWhenStationaryOne[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
+  // ledFunctionsWhenStationaryOne[9] = new RainbowLedAnimation();
+  // ledFunctionsWhenStationaryOne[10] = new JuggleAnimation();
+  // ledFunctionsWhenStationaryOne[11] = new SinelonAnimation();
+
+  // ledFunctionsTwo[10] = new JuggleAnimation();
+  // ledFunctionsTwo[11] = new SinelonAnimation();
+  // ledFunctionsWhenStationaryTwo[0] = new JuggleAnimation();
+  // ledFunctionsWhenStationaryTwo[1] = new ApplauseAnimation();
+  // ledFunctionsWhenStationaryTwo[2] = new LeftRightAnimation();
+  // ledFunctionsTwo[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsTwo[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsTwo[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsTwo[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsTwo[9] = new RainbowLedAnimation();
+  // ledFunctionsWhenStationaryTwo[0] = new RotateAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 1, 20, 12, NUM_LEDS_TWO);
+  //  ledFunctionsWhenStationaryTwo[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
+  //  ledFunctionsWhenStationaryTwo[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
+
+  // ledFunctionsWhenStationaryTwo[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 2, 10, 120, NUM_LEDS_TWO);
+  // ledFunctionsWhenStationaryTwo[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 5, 120, NUM_LEDS_TWO);
+  // ledFunctionsWhenStationaryTwo[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsWhenStationaryTwo[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsWhenStationaryTwo[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsWhenStationaryTwo[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
+  // ledFunctionsWhenStationaryTwo[9] = new RainbowLedAnimation();
+  // ledFunctionsWhenStationaryTwo[10] = new JuggleAnimation();
+  // ledFunctionsWhenStationaryTwo[11] = new SinelonAnimation();
+}
 
 long previousTime = 0;
 long currentTime = 0;
@@ -210,6 +291,32 @@ void ledCodeOnLoop()
   activeAnimationTwo->OnFastLoop(ledDataTwo);
 #endif
 }
+
+void ledCodeOn100MS()
+{
+  activeAnimationOne->Every100MilliSecond(ledDataOne);
+
+#ifdef LED_STRING_TWO_PRESENT
+  activeAnimationTwo->Every100MilliSecond(ledDataTwo);
+#endif
+}
+// void ledCodeOn200MS()
+// {
+//   activeAnimationOne->Every200MilliSecond(ledDataOne);
+
+// #ifdef LED_STRING_TWO_PRESENT
+//   activeAnimationTwo->Every200MilliSecond(ledDataTwo);
+// #endif
+// }
+
+// void ledCodeOn20MS()
+// {
+//   activeAnimationOne->Every20MilliSecond(ledDataOne);
+
+// #ifdef LED_STRING_TWO_PRESENT
+//   activeAnimationTwo->Every20MilliSecond(ledDataTwo);
+// #endif
+// }
 
 void ledCodeOnSetup()
 {
@@ -630,7 +737,22 @@ void loop()
 #endif
   }
 
-  // no need to read the Potentiometer often
+  // EVERY_N_MILLISECONDS(20)
+  // {
+  //   ledCodeOn20MS();
+  // }
+
+  EVERY_N_MILLISECONDS(100)
+  {
+    ledCodeOn100MS();
+  }
+
+  // EVERY_N_MILLISECONDS(200)
+  // {
+  //   ledCodeOn200MS();
+  // }
+
+// no need to read the Potentiometer often
 #ifdef POT_SUPPORTED
   EVERY_N_MILLISECONDS(1000)
   {
@@ -678,103 +800,6 @@ void loop()
   loopBeatHandling();
   ledCodeOnLoop();
   OnStaticAnimationEvent();
-}
-
-void initAnimations()
-{
-  Serial.println("Init Animations---------------------------");
-#ifdef HALL_SUPPORTED
-  ledFunctionsOne[0] = new RotateAnimation(0, ColorMode::OneColor, CRGB::Blue, CRGB::Red, 30, 1, 12, NUM_LEDS_ONE);
-  ledFunctionsOne[1] = new RotateAnimation(1, ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 30, 4, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[2] = new RotateAnimation(2, ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[3] = new RotateAnimation(3, ColorMode::RainBow, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[4] = new RotateAnimation(4, ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 8, 4, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[5] = new RainbowLedAnimation();
-  ledFunctionsOne[6] = new SinelonAnimation();
-  ledFunctionsOne[7] = new JuggleAnimation();
-  ledFunctionsOne[8] = new LeftRightAnimation();
-  ledFunctionsOne[9] = new LeftRightWideAnimation();
-  ledFunctionsOne[10] = new JuggleBeatAnimation();
-  ledFunctionsOne[11] = new SinelonBeatAnimation();
-  
-
-#ifdef LED_STRING_TWO_PRESENT
-  ledFunctionsTwo[0] = new RotateAnimation(5, ColorMode::OneColor, CRGB::Blue, CRGB::Red, 16, 1, 12, NUM_LEDS_TWO);
-  ledFunctionsTwo[1] = new RotateAnimation(6, ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 16, 3, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[2] = new RotateAnimation(7, ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[3] = new RotateAnimation(8, ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[4] = new RotateAnimation(8, ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 2, 120, NUM_LEDS_TWO);
-  ledFunctionsTwo[5] = new RainbowLedAnimation();
-  ledFunctionsTwo[6] = new SinelonAnimation();
-  ledFunctionsTwo[7] = new JuggleAnimation();
-  ledFunctionsTwo[8] = new LeftRightAnimation();
-  ledFunctionsTwo[9] = new LeftRightWideAnimation();
-  ledFunctionsTwo[10] = new JuggleBeatAnimation();
-  ledFunctionsTwo[11] = new SinelonBeatAnimation();
-  
-#endif
-#endif
-
-#ifdef JACKET
-  ledFunctionsOne[0] = new LeftRightAnimation();
-  ledFunctionsOne[1] = new JuggleBeatAnimation();
-  ledFunctionsOne[2] = new SinelonBeatAnimation();
-  ledFunctionsOne[3] = new RotateBeatAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 2, 2, 12, NUM_LEDS_ONE);
-  ledFunctionsOne[4] = new BpmAnimation();
-  ledFunctionsOne[5] = new LeftRightAnimation();
-  ledFunctionsOne[6] = new LeftRightAnimation();
-  ledFunctionsOne[7] = new JuggleAnimation();
-  ledFunctionsOne[8] = new SinelonAnimation();
-  ledFunctionsOne[9] = new SinelonAnimation();
-  ledFunctionsOne[10] = new SinelonAnimation();
-  ledFunctionsOne[11] = new SinelonAnimation();
-#endif
-
-  // ledFunctionsOne[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsOne[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsOne[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsOne[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-
-  // ledFunctionsWhenStationaryOne[0] = new HeartBeatAnimation();
-  // ledFunctionsWhenStationaryOne[1] = new LeftRightAnimation();
-  // ledFunctionsWhenStationaryOne[2] = new JuggleAnimation();
-  // ledFunctionsWhenStationaryOne[3] = new BpmAnimation();
-
-  // ledFunctionsWhenStationaryOne[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[9] = new RainbowLedAnimation();
-  // ledFunctionsWhenStationaryOne[10] = new JuggleAnimation();
-  // ledFunctionsWhenStationaryOne[11] = new SinelonAnimation();
-
-  // ledFunctionsTwo[10] = new JuggleAnimation();
-  // ledFunctionsTwo[11] = new SinelonAnimation();
-  // ledFunctionsWhenStationaryTwo[0] = new JuggleAnimation();
-  // ledFunctionsWhenStationaryTwo[1] = new ApplauseAnimation();
-  // ledFunctionsWhenStationaryTwo[2] = new LeftRightAnimation();
-  // ledFunctionsTwo[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsTwo[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsTwo[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsTwo[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsTwo[9] = new RainbowLedAnimation();
-  // ledFunctionsWhenStationaryTwo[0] = new RotateAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 1, 20, 12, NUM_LEDS_TWO);
-  //  ledFunctionsWhenStationaryTwo[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
-  //  ledFunctionsWhenStationaryTwo[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
-
-  // ledFunctionsWhenStationaryTwo[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 2, 10, 120, NUM_LEDS_TWO);
-  // ledFunctionsWhenStationaryTwo[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 5, 120, NUM_LEDS_TWO);
-  // ledFunctionsWhenStationaryTwo[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsWhenStationaryTwo[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsWhenStationaryTwo[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsWhenStationaryTwo[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsWhenStationaryTwo[9] = new RainbowLedAnimation();
-  // ledFunctionsWhenStationaryTwo[10] = new JuggleAnimation();
-  // ledFunctionsWhenStationaryTwo[11] = new SinelonAnimation();
 }
 
 void setup()

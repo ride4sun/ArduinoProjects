@@ -25,12 +25,11 @@ public:
             if (toggle)
             {
                 data.leds[i] = CHSV(gHue+i+i, 255, 255);
-                data.leds[i] = CRGB::Black;
+
             }
             else
             {
                 data.leds[data.noOfLeds - i] = CHSV(gHue + i + i, 255, 255);
-                data.leds[i] = CRGB::Black;
             }
         }
 
