@@ -15,7 +15,7 @@ public:
     AnimationType Kind() { return AnimationType::OnHallEvent; }
     void OnHall(struct ledData data)
     {
-        fill_rainbow(data.leds, data.noOfLeds, 7);
+        fill_rainbow(data.leds, data.noOfLeds, rainbowHue);
         rainbowHue += 10;
     };
     void OnSetup(){}

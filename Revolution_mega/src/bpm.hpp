@@ -10,24 +10,32 @@ class BpmAnimation : public IAnimation
     bool toggle = false;
     uint8_t gHue = 0;
     bool second = false;
+    bool delayed;
 
 public:
-    BpmAnimation() {}
+    BpmAnimation(bool delayed = false)
+    {
+        this->delayed = delayed;
+    }
     String Name() { return "BPM"; }
     AnimationType Kind() { return AnimationType::OnBeatEvent; }
     void OnBeat(struct ledData data)
     {
-        second = true;
-        fadeToBlackBy(data.leds, data.noOfLeds, data.pos);
-        for (uint16_t i = 0; i < data.noOfLeds; i++)
+        if (delayed)
         {
-            data.leds[i] = CHSV(gHue, 255, 255);
+            second = true;
+            return;
         }
-        
+        else
+        {
+            second = true;
+            fadeToBlackBy(data.leds, data.noOfLeds, data.pos);
+            for (uint16_t i = 0; i < data.noOfLeds; i++)
+            {
+                data.leds[i] = CHSV(gHue, 255, 255);
+            }
+        }
     };
-
-    uint8_t pos = 0;
-    uint8_t pos2 = 0;
 
     void OnFastLoop(struct ledData data)
     {
@@ -36,7 +44,8 @@ public:
 
     void Every100MilliSecond(struct ledData data)
     {
-        if(second){
+        if (second)
+        {
             this->OnBeat(data);
         }
         second = false;
