@@ -38,9 +38,11 @@ CRGB ledsTwo[NUM_LEDS_TWO]; // the led array representing the leds addressable b
 
 bool beatTaskActive = false;
 
+uint8_t numberOfJacketAnimations = 0;
 uint8_t numberOfAnimations = 0;
 uint8_t numberOfPotPositions = 0;
 uint8_t potPosition = 0;
+uint8_t autoBeatPosition = 0;
 
 IAnimation *activeAnimationOne;
 IAnimation *activeAnimationTwo;
@@ -56,10 +58,14 @@ SchedTask beatTask(0, DEFAULT_SLOW_BEAT, BeatEvent);
 PotPosLimits potPositions[12];
 #endif
 
+IAnimation *ledJacketFunctions[NO_OF_JACKET_BEAT_ANIMATION];
+
+#ifdef HALL_SUPPORTED
 IAnimation *ledFunctionsOne[12];
 
 #ifdef LED_STRING_TWO_PRESENT
 IAnimation *ledFunctionsTwo[12];
+#endif
 #endif
 
 bool startUpDone = false;
@@ -98,20 +104,22 @@ void initAnimations()
 {
   Serial.println("Init Animations---------------------------");
 #ifdef HALL_SUPPORTED
+  // DUMMY Position 0 to select Auto Beat!! - the Jacket Animations are Rotated automaticly in this Positions
   ledFunctionsOne[0] = new RotateAnimation(0, ColorMode::OneColor, CRGB::Blue, CRGB::Red, 100, 1, 12, NUM_LEDS_ONE);
-  //5 LED Gap looks like a calculation problem
-  ledFunctionsOne[1] = new RotateAnimation(1, ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 60, 5, 120, NUM_LEDS_ONE);
-  //same gap as before
-  ledFunctionsOne[2] = new RotateAnimation(2, ColorMode::OneColorFade, CRGB::Blue, CRGB::Red, 6,20, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[3] = new RotateAnimation(3, ColorMode::RainBow, CRGB::Blue, CRGB::Red, 20, 5, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[4] = new RotateAnimation(4, ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 10, 10, 120, NUM_LEDS_ONE);
-  ledFunctionsOne[5] = new RainbowLedAnimation();
-  ledFunctionsOne[6] = new Rainbow2LedAnimation();
-  ledFunctionsOne[7] = new JuggleAnimation();
-  ledFunctionsOne[8] = new LeftRightAnimation();
-  ledFunctionsOne[9] = new LeftRightWideAnimation();
-  ledFunctionsOne[10] = new JuggleBeatAnimation();
-  ledFunctionsOne[11] = new BpmAnimation();
+  ledFunctionsOne[1] = new RotateAnimation(0, ColorMode::OneColor, CRGB::Blue, CRGB::Red, 100, 1, 12, NUM_LEDS_ONE);
+  // 5 LED Gap looks like a calculation problem
+  ledFunctionsOne[2] = new RotateAnimation(1, ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 60, 5, 120, NUM_LEDS_ONE);
+  // same gap as before
+  ledFunctionsOne[3] = new RotateAnimation(2, ColorMode::OneColorFade, CRGB::Blue, CRGB::Red, 6, 20, 120, NUM_LEDS_ONE);
+  ledFunctionsOne[4] = new RotateAnimation(3, ColorMode::RainBow, CRGB::Blue, CRGB::Red, 20, 5, 120, NUM_LEDS_ONE);
+  ledFunctionsOne[5] = new RotateAnimation(4, ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 10, 10, 120, NUM_LEDS_ONE);
+  ledFunctionsOne[6] = new RainbowLedAnimation();
+  ledFunctionsOne[7] = new Rainbow2LedAnimation();
+  ledFunctionsOne[8] = new JuggleAnimation();
+  ledFunctionsOne[9] = new LeftRightAnimation();
+  ledFunctionsOne[10] = new LeftRightWideAnimation();
+  ledFunctionsOne[11] = new JuggleBeatAnimation();
+  // ledFunctionsOne[11] = new BpmAnimation();
 
 #ifdef LED_STRING_TWO_PRESENT
   ledFunctionsTwo[0] = new RotateAnimation(5, ColorMode::OneColor, CRGB::Blue, CRGB::Red, 12, 1, 12, NUM_LEDS_TWO);
@@ -126,67 +134,15 @@ void initAnimations()
   ledFunctionsTwo[9] = new LeftRightWideAnimation();
   ledFunctionsTwo[10] = new JuggleBeatAnimation();
   ledFunctionsTwo[11] = new BpmAnimation();
-
 #endif
 #endif
 
-#ifdef JACKET
-  ledFunctionsOne[0] = new BpmAnimation();
-  ledFunctionsOne[1] = new HeartBeatAnimation();
-  ledFunctionsOne[2] = new LeftRightWideAnimation();
-  ledFunctionsOne[3] = new LeftRightAnimation();
-  ledFunctionsOne[4] = new JuggleBeatAnimation();
-  //ledFunctionsOne[5] = new RotateBeatAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 2, 2, 12, NUM_LEDS_ONE);
-  ledFunctionsOne[5] = new SinelonBeatAnimation();
-  
-
-#endif
-
-  // ledFunctionsOne[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsOne[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsOne[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsOne[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-
-  // ledFunctionsWhenStationaryOne[0] = new HeartBeatAnimation();
-  // ledFunctionsWhenStationaryOne[1] = new LeftRightAnimation();
-  // ledFunctionsWhenStationaryOne[2] = new JuggleAnimation();
-  // ledFunctionsWhenStationaryOne[3] = new BpmAnimation();
-
-  // ledFunctionsWhenStationaryOne[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 40, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 10, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 6, 8, 120, NUM_LEDS_ONE);
-  // ledFunctionsWhenStationaryOne[9] = new RainbowLedAnimation();
-  // ledFunctionsWhenStationaryOne[10] = new JuggleAnimation();
-  // ledFunctionsWhenStationaryOne[11] = new SinelonAnimation();
-
-  // ledFunctionsTwo[10] = new JuggleAnimation();
-  // ledFunctionsTwo[11] = new SinelonAnimation();
-  // ledFunctionsWhenStationaryTwo[0] = new JuggleAnimation();
-  // ledFunctionsWhenStationaryTwo[1] = new ApplauseAnimation();
-  // ledFunctionsWhenStationaryTwo[2] = new LeftRightAnimation();
-  // ledFunctionsTwo[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsTwo[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsTwo[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsTwo[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsTwo[9] = new RainbowLedAnimation();
-  // ledFunctionsWhenStationaryTwo[0] = new RotateAnimation(ColorMode::OneColor, CRGB::Blue, CRGB::Red, 1, 20, 12, NUM_LEDS_TWO);
-  //  ledFunctionsWhenStationaryTwo[1] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
-  //  ledFunctionsWhenStationaryTwo[2] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 1, 20, 120, NUM_LEDS_TWO);
-
-  // ledFunctionsWhenStationaryTwo[3] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 2, 10, 120, NUM_LEDS_TWO);
-  // ledFunctionsWhenStationaryTwo[4] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 5, 120, NUM_LEDS_TWO);
-  // ledFunctionsWhenStationaryTwo[5] = new RotateAnimation(ColorMode::TwoColor, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsWhenStationaryTwo[6] = new RotateAnimation(ColorMode::TwoColorFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsWhenStationaryTwo[7] = new RotateAnimation(ColorMode::RainBow, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsWhenStationaryTwo[8] = new RotateAnimation(ColorMode::RainBowFade, CRGB::Blue, CRGB::Red, 4, 6, 120, NUM_LEDS_TWO);
-  // ledFunctionsWhenStationaryTwo[9] = new RainbowLedAnimation();
-  // ledFunctionsWhenStationaryTwo[10] = new JuggleAnimation();
-  // ledFunctionsWhenStationaryTwo[11] = new SinelonAnimation();
+  ledJacketFunctions[0] = new LeftRightWideAnimation();
+  ledJacketFunctions[1] = new BpmAnimation();
+  ledJacketFunctions[2] = new HeartBeatAnimation();
+  ledJacketFunctions[3] = new JuggleBeatAnimation();
+  ledJacketFunctions[4] = new LeftRightAnimation();
+  ledJacketFunctions[5] = new SinelonBeatAnimation();
 }
 
 long previousTime = 0;
@@ -218,6 +174,8 @@ void interruptBeat()
 {
   if (startUpDone == false)
     return;
+
+  // Serial.println("BEAT----FIRE");
 
   if (beatLock == true)
     return;
@@ -256,7 +214,7 @@ void interruptBeat()
     }
   }
 
-  // beatLock = false;
+  beatLock = false;
 }
 
 #ifdef HALL_SUPPORTED
@@ -302,36 +260,25 @@ void ledCodeOn100MS()
   activeAnimationTwo->Every100MilliSecond(ledDataTwo);
 #endif
 }
-// void ledCodeOn200MS()
-// {
-//   activeAnimationOne->Every200MilliSecond(ledDataOne);
-
-// #ifdef LED_STRING_TWO_PRESENT
-//   activeAnimationTwo->Every200MilliSecond(ledDataTwo);
-// #endif
-// }
-
-// void ledCodeOn20MS()
-// {
-//   activeAnimationOne->Every20MilliSecond(ledDataOne);
-
-// #ifdef LED_STRING_TWO_PRESENT
-//   activeAnimationTwo->Every20MilliSecond(ledDataTwo);
-// #endif
-// }
 
 void ledCodeOnSetup()
 {
+  for (int i; i < numberOfJacketAnimations; i++)
+  {
+    ledJacketFunctions[i]->OnSetup();
+  }
+
+#ifdef HALL_SUPPORTED
   for (int i; i < numberOfAnimations; i++)
   {
     ledFunctionsOne[i]->OnSetup();
   }
-
 #ifdef LED_STRING_TWO_PRESENT
   for (int i; i < numberOfAnimations; i++)
   {
     ledFunctionsTwo[i]->OnSetup();
   }
+#endif
 #endif
 }
 
@@ -500,9 +447,13 @@ BeatCalculationResult CalculateBeat()
 #ifndef POT_SUPPORTED
 void SelectFunction(uint8_t i)
 {
+#ifdef JACKET
+  activeAnimationOne = ledJacketFunctions[i];
+#else
   activeAnimationOne = ledFunctionsOne[i];
 #ifdef LED_STRING_TWO_PRESENT
   activeAnimationTwo = ledFunctionsTwo[i];
+#endif
 #endif
 }
 #endif
@@ -527,10 +478,26 @@ void UpdatePotPosition()
     }
   }
 
-  activeAnimationOne = ledFunctionsOne[potPosition];
+  if (potPosition == 0)
+  {
+    activeAnimationOne = ledJacketFunctions[autoBeatPosition];
+    activeAnimationTwo = ledJacketFunctions[autoBeatPosition];
+  }
+  else
+  {
+    activeAnimationOne = ledFunctionsOne[potPosition];
+    // Update once to show the active Animation
+    if (activeAnimationOne->Kind() == AnimationType::OnHallEvent)
+      activeAnimationOne->OnHall(ledDataOne);
+
 #ifdef LED_STRING_TWO_PRESENT
-  activeAnimationTwo = ledFunctionsTwo[potPosition];
+    activeAnimationTwo = ledFunctionsTwo[potPosition];
+    // Update once to show the active Animation
+    if (activeAnimationTwo->Kind() == AnimationType::OnHallEvent)
+      activeAnimationTwo->OnHall(ledDataTwo);
+
 #endif
+  }
 
 #ifdef SHOW_POTENTIOMETER_INFO
 
@@ -693,11 +660,11 @@ void BeatEvent()
 
   default:
     break;
-    // Serial.print(activeAnimationOne->Kind());
-    // Serial.print(" ");
-    // Serial.print(activeAnimationOne->Name());
-    // Serial.print(" ");
-    // Serial.println("Unsupported Type of Animation detected on Beat Event !!!!!");
+    Serial.print(activeAnimationOne->Kind());
+    Serial.print(" ");
+    Serial.print(activeAnimationOne->Name());
+    Serial.print(" ");
+    Serial.println("Unsupported Type of Animation detected on Beat Event !!!!!");
   }
 
   FastLED.show();
@@ -721,43 +688,59 @@ void loop()
   EVERY_N_MILLISECONDS(30000) // Advance pixels to next position.
   {
 
-#ifdef AUTO_SELECT_ANIMATION
-    if (potPosition < (numberOfAnimations - 1))
-    {
-      potPosition++;
-    }
-    else
-    {
-      potPosition = 0;
-    }
+    //     Serial.println("30 seconds");
 
-    activeAnimationOne = ledFunctionsOne[potPosition];
-#ifdef LED_STRING_TWO_PRESENT
-    activeAnimationTwo = ledFunctionsTwo[potPosition];
-#endif
+    #ifdef AUTO_SELECT_ANIMATION
+        if (potPosition < (numberOfAnimations - 1))
+        {
+          potPosition++;
+        }
+        else
+        {
+          //choose position 1 because 0 is Auto Beat
+          potPosition = 1;
+        }
 
-#endif
+        activeAnimationOne = ledFunctionsOne[potPosition];
+
+    #ifdef LED_STRING_TWO_PRESENT
+        activeAnimationTwo = ledFunctionsTwo[potPosition];
+    #endif
+
+    #else
+        // if the pot is in position one we auto increment the beat positions
+        if (potPosition == 0)
+        {
+          Serial.println("AutoBeat Position:");
+          Serial.println(autoBeatPosition);
+
+          if (autoBeatPosition < (numberOfJacketAnimations - 1))
+          {
+            autoBeatPosition++;
+          }
+          else
+          {
+            autoBeatPosition = 0;
+          }
+
+          activeAnimationOne = ledJacketFunctions[autoBeatPosition];
+    #ifdef LED_STRING_TWO_PRESENT
+          activeAnimationTwo = ledJacketFunctions[autoBeatPosition];
+    #endif
+        }
+    #endif
   }
-
-  // EVERY_N_MILLISECONDS(20)
-  // {
-  //   ledCodeOn20MS();
-  // }
 
   EVERY_N_MILLISECONDS(100)
   {
     ledCodeOn100MS();
   }
 
-  // EVERY_N_MILLISECONDS(200)
-  // {
-  //   ledCodeOn200MS();
-  // }
-
 // no need to read the Potentiometer often
 #ifdef POT_SUPPORTED
   EVERY_N_MILLISECONDS(1000)
   {
+    Serial.println("Update Pot");
     UpdatePotPosition();
   }
 #endif
@@ -815,14 +798,11 @@ void setup()
   initPot();
 #endif
 
-// numberOfAnimations = sizeof(ledFunctionsOne) / sizeof(ledFunctionsOne[0]);
-#ifdef JACKET
-  numberOfAnimations = NO_OF_JACKET_BEAT_ANIMATION;
-  numberOfPotPositions = 0;
-#else
-  numberOfAnimations = 12;
-  numberOfPotPositions = 12;
-#endif
+  // numberOfAnimations = sizeof(ledFunctionsOne) / sizeof(ledFunctionsOne[0]);
+
+  numberOfJacketAnimations = NO_OF_JACKET_BEAT_ANIMATION;
+  numberOfAnimations = NO_OF_ANIMATION;
+  numberOfPotPositions = NO_OF_ANIMATION;
 
 #ifdef POT_SUPPORTED
   UpdatePotPosition();
@@ -830,10 +810,10 @@ void setup()
   SelectFunction(ACTIVE_BEAT_ANIMATION_DEFAULT);
 #endif
 
-  Serial.print("Number of Pot Positions:");
-  Serial.println(numberOfPotPositions);
-  Serial.print("Number of Animations:");
-  Serial.println(numberOfAnimations);
+  // Serial.print("Number of Pot Positions:");
+  // Serial.println(numberOfPotPositions);
+  // Serial.print("Number of Animations:");
+  // Serial.println(numberOfAnimations);
 
 #ifdef LED_STRING_TWO_PRESENT
   Serial.println("LED STRING TWO IS PRESENT");
@@ -905,6 +885,7 @@ void setup()
   Serial.println(ledDataOne.noOfLeds);
 
   Serial.println("Setup done --------------------------------------");
+  delay(1600); // Startup delay
 
   startUpDone = true;
 }

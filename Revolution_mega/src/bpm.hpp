@@ -11,6 +11,7 @@ class BpmAnimation : public IAnimation
     uint8_t gHue = 0;
     bool second = false;
     bool delayed;
+    CRGBPalette16 palette = PartyColors_p;
 
 public:
     BpmAnimation(bool delayed = false)
@@ -32,7 +33,8 @@ public:
             fadeToBlackBy(data.leds, data.noOfLeds, data.pos);
             for (uint16_t i = 0; i < data.noOfLeds; i++)
             {
-                data.leds[i] = CHSV(gHue, 255, 255);
+                data.leds[i] = palette;
+                //data.leds[i] = CHSV(gHue, 255, 255);
             }
         }
     };

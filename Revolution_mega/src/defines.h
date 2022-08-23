@@ -1,18 +1,18 @@
 #ifndef DEFINE_H
 #define DEFINE_H
 
-UNCOMMENT SECTION FOR JACKET
+//UNCOMMENT SECTION FOR JACKET
 #define JACKET
 #define NUM_LEDS_ONE 90 //Jacket led
 //use when the potentiometer is not present
-#define AUTO_SELECT_ANIMATION
+// #define AUTO_SELECT_ANIMATION
 
 //UNCOMMENT SECTION FOR GOLF CARD
-#define NUM_LEDS_ONE 306 //big Ring on Golfcart
-#define NUM_LEDS_TWO 48 //inner ring - same as on card
-#define LED_STRING_TWO_PRESENT 
-#define HALL_SUPPORTED
-#define POT_SUPPORTED
+// #define NUM_LEDS_ONE 306 //big Ring on Golfcart
+// #define NUM_LEDS_TWO 48 //inner ring - same as on card
+// #define LED_STRING_TWO_PRESENT 
+// #define HALL_SUPPORTED
+// #define POT_SUPPORTED
 
 //UNCOMMENT SECTION FOR BIG TEST SETUP
 //#define NUM_LEDS_ONE 150 //big Ring test setup
@@ -51,10 +51,9 @@ UNCOMMENT SECTION FOR JACKET
 #define ACTIVE_BEAT_ANIMATION_DEFAULT 0
 #define NO_OF_JACKET_BEAT_ANIMATION 6
 
-
-
-//BEAT SETUP - BEAT IS ALWAYS ENABLED
+//GENERAL
 #define BRIGHTNESS 100
+#define NO_OF_ANIMATION 12
 #define MIN_NO_OF_BEATS 4
 #define BEAT_MINUS_CORRECTION 5
 //#define AUTO_FIRE_BEAT
